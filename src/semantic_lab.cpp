@@ -48,7 +48,7 @@ namespace vso {
         assert(CV_8UC3 == semantic_map.type() && semantic_map.data);
         _sigma = sigma;
         _semantic_map = semantic_map.clone();
-        _compute_prob_maps();
+        _compute_dist_maps();
     }
 
     cv::Vec3b cityscape::color_of(int cls_idx) {
@@ -62,13 +62,45 @@ namespace vso {
     }
 
     int cityscape::catagory_of(uchar r, uchar g, uchar b) {
-        return _map_table[((int) r + (int) g + (int) b) % 67];
+        int cls = _map_table[((int) r + (int) g + (int) b) % 67];
+        const uchar* p = rgb_index + cls * n_channels;
+        if (*p == r && *(p + 1) == g && *(p + 2) == b) { return cls; }
+        return NONE;
     }
 
-    void cityscape::set_sigma(double sigma) {
-        if (sigma == _sigma) { return; }
-        _sigma = sigma;
-        _compute_prob_maps();
+    void cityscape::set_sigma(double sigma) { _sigma = sigma; }
+
+    void cityscape::logits(float x, float y, float* logits) const {
+        assert(_check_uv(x, y, 1.f));
+
+        int ix = x, iy = y;
+        float dx = x - ix, dy = y - iy;
+
+        float w00 = (1.f - dx) * (1.f - dy);
+        float w01 =         dx * (1.f - dy);
+        float w10 = (1.f - dx) * dy;
+        float w11 =         dx * dy;
+
+        float* ptr = logits;
+        for (int i = 0; i < n_classes; ++i) {
+            const cv::Mat& dist_map = _dist_maps[i];
+            float dist = w00 * dist_map.at<float>(iy, ix) + 
+                         w01 * dist_map.at<float>(iy, ix + 1) + 
+                         w10 * dist_map.at<float>(iy + 1, ix) + 
+                         w11 * dist_map.at<float>(iy + 1, ix + 1);
+            *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
+            ++ptr;
+        }
+    }
+
+    void cityscape::logits(int x, int y, float* logits) const {
+        float* ptr = logits;
+        for (int i = 0; i < n_classes; ++i) {
+            const cv::Mat& dist_map = _dist_maps[i];
+            float dist = dist_map.at<float>(y, x);
+            *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
+            ++ptr;
+        }
     }
 
     void cityscape::probability_vec(float x, float y, float* p) const {
@@ -82,41 +114,57 @@ namespace vso {
         float w10 = (1.f - dx) * dy;
         float w11 =         dx * dy;
 
-        float sum_square = 0.f;
+        float sum = 0.f;
         float* q = p;
         for (int i = 0; i < n_classes; ++i) {
-            const cv::Mat& prob_map = _prob_maps[i];
-            float prob = w00 * prob_map.at<float>(iy, ix) + 
-                         w01 * prob_map.at<float>(iy, ix + 1) + 
-                         w10 * prob_map.at<float>(iy + 1, ix) + 
-                         w11 * prob_map.at<float>(iy + 1, ix + 1);
-            *q = prob * prob;
-            sum_square += *q;
+            const cv::Mat& dist_map = _dist_maps[i];
+            float dist = w00 * dist_map.at<float>(iy, ix) + 
+                         w01 * dist_map.at<float>(iy, ix + 1) + 
+                         w10 * dist_map.at<float>(iy + 1, ix) + 
+                         w11 * dist_map.at<float>(iy + 1, ix + 1);
+            *q = std::exp(-0.5f / (_sigma * _sigma) * (dist * dist));
+            sum += *q;
             ++q;
         }
 
         for (int i = 0; i < n_classes; ++i) {
-            *p /= sum_square; ++p;
+            *p /= sum; ++p;
         }
     }
 
-    void cityscape::_compute_prob_maps() {
+    void cityscape::probability_vec(int x, int y, float* p) const {
+        float sum = 0.f;
+        float* q = p;
         for (int i = 0; i < n_classes; ++i) {
-            _prob_maps[i] = cv::Mat::zeros(_semantic_map.size(), CV_8UC1);
+            const cv::Mat& dist_map = _dist_maps[i];
+            float dist = dist_map.at<float>(y, x);
+            *q = std::exp(-0.5f / (_sigma * _sigma) * (dist * dist));
+            sum += *q;
+            ++q;
+        }
+
+        for (int i = 0; i < n_classes; ++i) {
+            *p /= sum; ++p;
+        }
+    }
+
+    void cityscape::_compute_dist_maps() {
+        for (int i = 0; i < n_classes; ++i) {
+            _dist_maps[i] = cv::Mat::ones(_semantic_map.size(), CV_8UC1);
         }
 
         for (int r = 0; r < _semantic_map.rows; ++r) {
             for (int c = 0; c < _semantic_map.cols; ++c) {
                 cv::Vec3b rgb = _semantic_map.at<cv::Vec3b>(r, c);
                 int cls = catagory_of(rgb);
-                _prob_maps[cls].at<uchar>(r, c) = 255;
+                _dist_maps[cls].at<uchar>(r, c) = 0;
             }
         }
 
         for (int i = 0; i < n_classes; ++i) {
             cv::Mat tmp;
-            cv::GaussianBlur(_prob_maps[i], tmp, cv::Size2i(_sigma, _sigma), 0.);
-            cv::distanceTransform(tmp, _prob_maps[i], CV_DIST_L2, 3, CV_32F);
+            cv::distanceTransform(_dist_maps[i], tmp, CV_DIST_L2, 3, CV_32F);
+            _dist_maps[i] = tmp;
         }
     }
     

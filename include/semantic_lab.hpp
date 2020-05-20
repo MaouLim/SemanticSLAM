@@ -7,6 +7,7 @@ namespace vso {
 
     struct semantic_lab {
         virtual ~semantic_lab() = default;
+        virtual void logits(float x, float y, float* logits) const = 0;
         virtual void probability_vec(float x, float y, float* p) const = 0;
     };
 
@@ -34,19 +35,23 @@ namespace vso {
         static int catagory_of(const cv::Vec3b& rgb);
         static int catagory_of(uchar r, uchar g, uchar b);
 
-        const cv::Mat& probability_map(int cls_idx) const { assert(cls_idx < n_classes); return _prob_maps[cls_idx]; }
         double sigma() const { return _sigma; }
         void set_sigma(double sigma);
 
+        void logits(float x, float y, float* logits) const override;
+        void logits(int x, int y, float* logits) const;
+
         void probability_vec(float x, float y, float* p) const override;
+        void probability_vec(int x, int y, float* p) const;
 
     private:
-        void _compute_prob_maps();
+        void _compute_dist_maps();
         bool _check_uv(float u, float v, float border = 0.f) const;
 
         double  _sigma;
         cv::Mat _semantic_map;
-        cv::Mat _prob_maps[n_classes];
+    public:
+        cv::Mat _dist_maps[n_classes];
     };
 
     inline bool cityscape::_check_uv(float u, float v, float border) const {

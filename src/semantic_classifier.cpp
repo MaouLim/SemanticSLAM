@@ -8,8 +8,9 @@ namespace vso {
         sprintf(fname_chs, "%.6d.png", id);
         std::string fname(fname_chs);
         cv::Mat semantic = cv::imread(_precalc_path + "/" + fname);
+        cv::cvtColor(semantic, semantic, cv::COLOR_BGR2RGB);
         assert(semantic.data);
-        return new cityscape(semantic, 11.);
+        return new cityscape(semantic, 10.);
     }
     
 } // namespace vso
