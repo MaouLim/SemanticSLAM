@@ -19,6 +19,10 @@
 */
 
 #include "Optimizer.h"
+#include "Converter.h"
+
+#include "semantic_lab.hpp"
+#include "semantic_g2o_staff.hpp"
 
 #include "Thirdparty/g2o/g2o/core/block_solver.h"
 #include "Thirdparty/g2o/g2o/core/optimization_algorithm_levenberg.h"
@@ -29,8 +33,6 @@
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
 #include<Eigen/StdVector>
-
-#include "Converter.h"
 
 #include<mutex>
 
@@ -450,7 +452,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     return nInitialCorrespondences-nBad;
 }
 
-void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
+void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap, bool use_semantic, double lamda)
 {    
     // Local KeyFrames: First Breath Search from Current Keyframe
     list<KeyFrame*> lLocalKeyFrames;
@@ -566,6 +568,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     vector<MapPoint*> vpMapPointEdgeStereo;
     vpMapPointEdgeStereo.reserve(nExpectedSize);
 
+    std::vector<g2o::edge_semantic_err*> semantic_edges;
+    semantic_edges.reserve(nExpectedSize);
+
     const float thHuberMono = sqrt(5.991);
     const float thHuberStereo = sqrt(7.815);
 
@@ -648,6 +653,50 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
                     vpEdgeKFStereo.push_back(pKFi);
                     vpMapPointEdgeStereo.push_back(pMP);
                 }
+            }
+        }
+
+        if (use_semantic) {
+
+            // if the Pi is not seen by any keyframes
+            if (observations.empty()) { continue; }
+
+            // Set semantic edges
+            size_t n_cls = vso::cityscape::n_classes;
+
+            std::vector<float> weights(n_cls, 1.f);
+            float tmp[n_cls];
+
+            // Step 1. E-Step: calculate the weights for the map point Pi
+            for (const auto& ob : observations) {
+                KeyFrame* kf = ob.first;
+                if (kf->isBad()) { continue; }
+                const cv::Point2f& kpt = kf->mvKeysUn[ob.second].pt;
+                kf->_lab->probability_vec(kpt.x, kpt.y, tmp);
+                for (size_t i = 0; i < n_cls; ++i) { weights[i] *= tmp[i]; }
+            }
+
+            float scale_factor = 0.f;
+            for (float  w : weights) { scale_factor += w; }
+            for (float& w : weights) { w /= scale_factor; }
+
+
+            // Step 2. M-Step: create g2o edges
+            for (const auto& ob : observations) {
+                KeyFrame* kf = ob.first;
+                g2o::edge_semantic_err* e = 
+                    new g2o::edge_semantic_err(kf->mnMaxY - kf->mnMinY, kf->mnMaxX - kf->mnMinX, weights);
+                e->fx = kf->fx; e->fy = kf->fy;
+                e->cx = kf->cx; e->cy = kf->cy;
+                e->lamda = lamda;
+
+                e->setInformation(Eigen::Matrix<double, 1, 1>::Identity());
+                e->setVertex(0, optimizer.vertex(kf->mnId));
+                e->setVertex(1, optimizer.vertex(id));
+                e->setMeasurement(kf->_lab.get());
+
+                optimizer.addEdge(e);
+                semantic_edges.push_back(e);
             }
         }
     }

@@ -40,6 +40,8 @@
 
 #include <mutex>
 
+namespace vso { struct semantic_classifier; }
+
 namespace ORB_SLAM2
 {
 
@@ -55,7 +57,9 @@ class Tracking
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool use_semantic = false);
+
+    ~Tracking();
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -91,6 +95,8 @@ public:
 
     // Input sensor
     int mSensor;
+
+    bool _use_semantic;
 
     // Current Frame
     Frame mCurrentFrame;
@@ -214,6 +220,9 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+    // semantic staff
+    vso::semantic_classifier* _classifier;
 };
 
 } //namespace ORB_SLAM

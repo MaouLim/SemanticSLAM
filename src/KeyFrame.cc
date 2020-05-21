@@ -21,6 +21,9 @@
 #include "KeyFrame.h"
 #include "Converter.h"
 #include "ORBmatcher.h"
+
+#include "semantic_lab.hpp"
+
 #include<mutex>
 
 namespace ORB_SLAM2
@@ -53,7 +56,11 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
             mGrid[i][j] = F.mGrid[i][j];
     }
 
-    SetPose(F.mTcw);    
+    SetPose(F.mTcw);
+
+    // setup semantic label
+    _lab = F._semantic_lab;
+    assert(_lab);
 }
 
 void KeyFrame::ComputeBoW()

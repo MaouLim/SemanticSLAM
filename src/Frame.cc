@@ -59,6 +59,9 @@ Frame::Frame(const Frame &frame)
 
     if(!frame.mTcw.empty())
         SetPose(frame.mTcw);
+
+    _classifier = frame._classifier;
+    _semantic_lab = frame._semantic_lab;
 }
 
 
@@ -175,7 +178,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 }
 
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, vso::semantic_classifier* classifier, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
 {
@@ -302,7 +305,7 @@ Frame::Frame(
     // semantic setup
     assert(classifier);
     _classifier = classifier;
-    _semantic_lab = _classifier->compute(imgColor, mnId);
+    _semantic_lab = _classifier->compute(imgColor, mTimeStamp);
 }
 
 void Frame::AssignFeaturesToGrid()

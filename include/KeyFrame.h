@@ -30,7 +30,9 @@
 #include "KeyFrameDatabase.h"
 
 #include <mutex>
+#include <memory>
 
+namespace vso { struct semantic_lab; }
 
 namespace ORB_SLAM2
 {
@@ -187,6 +189,9 @@ public:
     const int mnMaxX;
     const int mnMaxY;
     const cv::Mat mK;
+
+    // semantic staff
+    std::shared_ptr<vso::semantic_lab> _lab;
 
 
     // The following variables need to be accessed trough a mutex to be thread safe.

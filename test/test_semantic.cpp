@@ -13,8 +13,8 @@ int argmax(float* p) {
 
 int main(int argc, char** argv) {
 
-    vso::fake_classifier classifier("/media/maou/TOSHIBA-Maou/KITTI/sequence/00/image_2_seg_colored/");
-    auto* lab = classifier.compute(cv::Mat(), 0);
+    vso::fake_classifier classifier("data/");
+    auto lab = classifier.compute(cv::Mat(), 6.220448e-01);
 
     int h = 376, w = 1241;
     cv::Mat semantic_img = cv::Mat::zeros(h, w, CV_8UC3);
@@ -33,12 +33,10 @@ int main(int argc, char** argv) {
     cv::imshow("recover semantic", semantic_img);
     cv::imshow("Car map", car_prob_map);
 
-    vso::cityscape* cs_lab = (vso::cityscape*) lab;
+    vso::cityscape* cs_lab = (vso::cityscape*) lab.get();
     cv::imshow("Car dist map", cs_lab->_dist_maps[vso::cityscape::CAR]);
     
 
     cv::waitKey();
-    
-    delete lab;
     return 0;
 }
