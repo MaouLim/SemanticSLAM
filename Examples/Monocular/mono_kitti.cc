@@ -50,7 +50,11 @@ int main(int argc, char **argv)
     int nImages = vstrImageFilenames.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, false);
+    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, true);
+
+    cv::FileStorage fs_settings(argv[2], cv::FileStorage::READ);
+    const float fps = fs_settings["Camera.fps"];
+    const double ft = 1. / fps; 
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -102,6 +106,9 @@ int main(int argc, char **argv)
 
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
+        
+        if (T < ft) { usleep((ft - T) * 1e6); }
+        else if (ttrack < ft) { usleep((ft - ttrack) * 1e6); }
     }
 
     // Stop all threads

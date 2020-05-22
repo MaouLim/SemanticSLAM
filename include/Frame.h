@@ -77,6 +77,8 @@ public:
         float                     thDepth
     );
 
+    ~Frame();
+
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
 

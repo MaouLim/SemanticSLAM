@@ -10,13 +10,13 @@ namespace g2o {
         Eigen::Vector2d uv = cam2pixel(v0->estimate().map(v1->estimate()));
         if (!in_viewport(uv, 1.0)) { return; }
 
-        float p[vso::cityscape::n_classes];
+        float p[vso::cityscape5::n_classes];
         _measurement->logits((float) uv.x(), (float) uv.y(), p);
         
-        assert(w.size() == vso::cityscape::n_classes);
+        assert(w.size() == vso::cityscape5::n_classes);
 
         _error.setZero();
-        for (int i = 0; i < vso::cityscape::n_classes; ++i) {
+        for (int i = 0; i < vso::cityscape5::n_classes; ++i) {
             _error(0) += w[i] * p[i];
         }
         _error *= lamda;

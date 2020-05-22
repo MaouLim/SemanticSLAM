@@ -4,13 +4,50 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
+        {
+            "name": "SemanticMemoryUsageTest",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Examples/Monocular/SemanticMemoryUsageTest",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
         {
             "name": "SemanticTest",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/Examples/Monocular/SemanticTest",
             "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "mono_kitti",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Examples/Monocular/mono_kitti",
+            "args": ["Vocabulary/ORBvoc.txt", "Examples/Monocular/KITTI00-02.yaml", "/media/maou/TOSHIBA-Maou/KITTI/sequence/00/"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

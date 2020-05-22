@@ -308,6 +308,10 @@ Frame::Frame(
     _semantic_lab = _classifier->compute(imgColor, mTimeStamp);
 }
 
+Frame::~Frame() {
+    //std::cout << "Frame Destroy" << std::endl;
+}
+
 void Frame::AssignFeaturesToGrid()
 {
     int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);

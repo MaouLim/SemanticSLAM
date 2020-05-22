@@ -8,9 +8,10 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -121,3 +122,9 @@ src/semantic_lab.cpp
 src/semantic_classifier.cpp
 test/test_semantic.cpp)
 target_link_libraries(SemanticTest ${OpenCV_LIBS})
+
+add_executable(SemanticMemoryUsageTest 
+src/semantic_lab.cpp
+src/semantic_classifier.cpp
+test/test_semantic_memory_usage.cpp)
+target_link_libraries(SemanticMemoryUsageTest ${OpenCV_LIBS})

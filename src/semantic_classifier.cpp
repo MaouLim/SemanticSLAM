@@ -32,7 +32,7 @@ namespace vso {
         cv::Mat semantic = cv::imread(_mask_map[timestamp]);
         cv::cvtColor(semantic, semantic, cv::COLOR_BGR2RGB);
         assert(semantic.data);
-        return std::make_shared<cityscape>(semantic, 10.);
+        return std::make_shared<cityscape5>(semantic, 10.);
     }
     
 } // namespace vso

@@ -32,9 +32,10 @@
 #include "Thirdparty/g2o/g2o/solvers/linear_solver_dense.h"
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
-#include<Eigen/StdVector>
+#include <Eigen/StdVector>
 
-#include<mutex>
+#include <unistd.h>
+#include <mutex>
 
 namespace ORB_SLAM2
 {
@@ -658,11 +659,13 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
         if (use_semantic) {
 
+            // std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
             // if the Pi is not seen by any keyframes
             if (observations.empty()) { continue; }
 
             // Set semantic edges
-            size_t n_cls = vso::cityscape::n_classes;
+            size_t n_cls = vso::cityscape5::n_classes;
 
             std::vector<float> weights(n_cls, 1.f);
             float tmp[n_cls];
@@ -680,7 +683,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             for (float  w : weights) { scale_factor += w; }
             for (float& w : weights) { w /= scale_factor; }
 
-
+            const int max_obs = 2; 
+            int count = 0;
             // Step 2. M-Step: create g2o edges
             for (const auto& ob : observations) {
                 KeyFrame* kf = ob.first;
@@ -697,9 +701,21 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
                 optimizer.addEdge(e);
                 semantic_edges.push_back(e);
+                ++count;
+                if (max_obs <= count) { break; }
             }
+
+            // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            // std::cout << "semantic create edges: " 
+            //           << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+            //           << std::endl;
         }
     }
+
+    std::cout << "Size of GEO Edges: " << vpEdgesMono.size() << std::endl;
+    std::cout << "Size of semantic_edges: " << semantic_edges.size() << std::endl;
+
+    if (!use_semantic) { usleep(4e5); }
 
     if(pbStopFlag)
         if(*pbStopFlag)
@@ -757,6 +773,17 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
     }
 
+    // free the semantic memory
+    // if (use_semantic) {
+    //     for (auto& mp : lLocalMapPoints) {
+    //         auto observations = mp->GetObservations();
+    //         for (auto& ob : observations) {
+    //             KeyFrame* kf = ob.first;
+    //             ((vso::cityscape5*) kf->_lab.get())->clear_cache();
+    //         }
+    //     }
+    // }
+    
     vector<pair<KeyFrame*,MapPoint*> > vToErase;
     vToErase.reserve(vpEdgesMono.size()+vpEdgesStereo.size());
 
