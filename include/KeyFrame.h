@@ -192,7 +192,9 @@ public:
 
     // semantic staff
     std::shared_ptr<vso::semantic_lab> _lab;
-
+    std::vector<float> _prob_vecs;
+    std::vector<bool>  _prob_vecs_avaliable;
+    const float* prob_vec(int idx) const;
 
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:

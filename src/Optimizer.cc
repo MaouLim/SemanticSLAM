@@ -668,26 +668,35 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             size_t n_cls = vso::cityscape5::n_classes;
 
             std::vector<float> weights(n_cls, 1.f);
-            float tmp[n_cls];
+            size_t n_observed = 0;
 
             // Step 1. E-Step: calculate the weights for the map point Pi
             for (const auto& ob : observations) {
                 KeyFrame* kf = ob.first;
                 if (kf->isBad()) { continue; }
-                const cv::Point2f& kpt = kf->mvKeysUn[ob.second].pt;
-                kf->_lab->probability_vec(kpt.x, kpt.y, tmp);
-                for (size_t i = 0; i < n_cls; ++i) { weights[i] *= tmp[i]; }
+				const float* pvec = kf->prob_vec(ob.second);
+                if (!pvec) { continue; }
+                ++n_observed;
+                for (size_t i = 0; i < n_cls; ++i) { weights[i] *= pvec[i]; }
             }
+
+            if (n_observed < 2) { continue; }
 
             float scale_factor = 0.f;
             for (float  w : weights) { scale_factor += w; }
             for (float& w : weights) { w /= scale_factor; }
 
-            const int max_obs = 2; 
+            const int max_obs = 4;
             int count = 0;
             // Step 2. M-Step: create g2o edges
             for (const auto& ob : observations) {
                 KeyFrame* kf = ob.first;
+
+	            if (!optimizer.vertex(kf->mnId) || !optimizer.vertex(id)) {
+		            std::cerr << "Warning: nullptr g2o vertex." << std::endl;
+		            continue;
+	            }
+
                 g2o::edge_semantic_err* e = 
                     new g2o::edge_semantic_err(kf->mnMaxY - kf->mnMinY, kf->mnMaxX - kf->mnMinX, weights);
                 e->fx = kf->fx; e->fy = kf->fy;
@@ -712,10 +721,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
-    std::cout << "Size of GEO Edges: " << vpEdgesMono.size() << std::endl;
-    std::cout << "Size of semantic_edges: " << semantic_edges.size() << std::endl;
+//    std::cout << "Size of GEO Edges: " << vpEdgesMono.size() << std::endl;
+//    std::cout << "Size of semantic_edges: " << semantic_edges.size() << std::endl;
 
-    if (!use_semantic) { usleep(4e5); }
+    if (!use_semantic) { usleep(2.0e5); }
 
     if(pbStopFlag)
         if(*pbStopFlag)

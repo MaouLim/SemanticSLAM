@@ -70,8 +70,8 @@ namespace vso {
 
     void cityscape::set_sigma(double sigma) { _sigma = sigma; }
 
-    void cityscape::logits(float x, float y, float* logits) {
-        assert(_check_uv(x, y, 1.f));
+	bool cityscape::logits(float x, float y, float* logits) {
+        if (!_check_uv(x, y, 1.f)) { return false; }
 
         if (!_cache_available) { 
             _compute_cache();
@@ -96,9 +96,10 @@ namespace vso {
             *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
             ++ptr;
         }
+        return true;
     }
 
-    void cityscape::logits(int x, int y, float* logits) {
+	bool cityscape::logits(int x, int y, float* logits) {
 
         if (!_cache_available) { 
             _compute_cache();
@@ -112,10 +113,12 @@ namespace vso {
             *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
             ++ptr;
         }
+
+        return true;
     }
 
-    void cityscape::probability_vec(float x, float y, float* p) {
-        assert(_check_uv(x, y, 1.f));
+	bool cityscape::probability_vec(float x, float y, float* p) {
+        if (!_check_uv(x, y, 1.f)) { return false; }
 
         if (!_cache_available) { 
             _compute_cache();
@@ -146,9 +149,10 @@ namespace vso {
         for (int i = 0; i < n_classes; ++i) {
             *p /= sum; ++p;
         }
+        return true;
     }
 
-    void cityscape::probability_vec(int x, int y, float* p) {
+	bool cityscape::probability_vec(int x, int y, float* p) {
 
         if (!_cache_available) { 
             _compute_cache();
@@ -168,6 +172,8 @@ namespace vso {
         for (int i = 0; i < n_classes; ++i) {
             *p /= sum; ++p;
         }
+
+        return true;
     }
 
     void cityscape::clear_cache() {
@@ -234,10 +240,11 @@ namespace vso {
           0,   0,   0  // none 0
     };
 
-    cityscape5::cityscape5(const cv::Mat& semantic_map, double sigma) {
+    cityscape5::cityscape5(const cv::Mat& semantic_map, double sigma, double scale) {
         assert(CV_8UC3 == semantic_map.type() && semantic_map.data);
-        _sigma = sigma;
-        _semantic_map = semantic_map.clone();
+        _sigma = sigma * scale;
+	    _scale = scale;
+        cv::resize(semantic_map, _semantic_map, cv::Size2i(), scale, scale);
         _cache_available = false;
     }
 
@@ -261,8 +268,9 @@ namespace vso {
 
     void cityscape5::set_sigma(double sigma) { _sigma = sigma; }
 
-    void cityscape5::logits(float x, float y, float* logits) {
-        assert(_check_uv(x, y, 1.f));
+    bool cityscape5::logits(float x, float y, float* logits) {
+    	x *= _scale; y *= _scale;
+        if (!_check_uv(x, y, 1.f)) { return false; }
 
         if (!_cache_available) { 
             _compute_cache();
@@ -287,26 +295,29 @@ namespace vso {
             *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
             ++ptr;
         }
+
+        return true;
     }
 
-    void cityscape5::logits(int x, int y, float* logits) {
+//    void cityscape5::logits(int x, int y, float* logits) {
+//
+//        if (!_cache_available) {
+//            _compute_cache();
+//            _cache_available = true;
+//        }
+//
+//        float* ptr = logits;
+//        for (int i = 0; i < n_classes; ++i) {
+//            const cv::Mat& dist_map = _dist_maps[i];
+//            float dist = dist_map.at<float>(y, x);
+//            *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
+//            ++ptr;
+//        }
+//    }
 
-        if (!_cache_available) { 
-            _compute_cache();
-            _cache_available = true;
-        }
-
-        float* ptr = logits;
-        for (int i = 0; i < n_classes; ++i) {
-            const cv::Mat& dist_map = _dist_maps[i];
-            float dist = dist_map.at<float>(y, x);
-            *ptr = -0.5f / (_sigma * _sigma) * (dist * dist);
-            ++ptr;
-        }
-    }
-
-    void cityscape5::probability_vec(float x, float y, float* p) {
-        assert(_check_uv(x, y, 1.f));
+    bool cityscape5::probability_vec(float x, float y, float* p) {
+	    x *= _scale; y *= _scale;
+        if (!_check_uv(x, y, 1.f)) { return false; }
 
         if (!_cache_available) { 
             _compute_cache();
@@ -337,29 +348,31 @@ namespace vso {
         for (int i = 0; i < n_classes; ++i) {
             *p /= sum; ++p;
         }
+
+        return true;
     }
 
-    void cityscape5::probability_vec(int x, int y, float* p) {
-
-        if (!_cache_available) { 
-            _compute_cache();
-            _cache_available = true;
-        }
-
-        float sum = 0.f;
-        float* q = p;
-        for (int i = 0; i < n_classes; ++i) {
-            const cv::Mat& dist_map = _dist_maps[i];
-            float dist = dist_map.at<float>(y, x);
-            *q = std::exp(-0.5f / (_sigma * _sigma) * (dist * dist));
-            sum += *q;
-            ++q;
-        }
-
-        for (int i = 0; i < n_classes; ++i) {
-            *p /= sum; ++p;
-        }
-    }
+//    void cityscape5::probability_vec(int x, int y, float* p) {
+//
+//        if (!_cache_available) {
+//            _compute_cache();
+//            _cache_available = true;
+//        }
+//
+//        float sum = 0.f;
+//        float* q = p;
+//        for (int i = 0; i < n_classes; ++i) {
+//            const cv::Mat& dist_map = _dist_maps[i];
+//            float dist = dist_map.at<float>(y, x);
+//            *q = std::exp(-0.5f / (_sigma * _sigma) * (dist * dist));
+//            sum += *q;
+//            ++q;
+//        }
+//
+//        for (int i = 0; i < n_classes; ++i) {
+//            *p /= sum; ++p;
+//        }
+//    }
 
     void cityscape5::clear_cache() {
         if (!_cache_available) { return; }

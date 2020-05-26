@@ -7,8 +7,8 @@ namespace vso {
 
     struct semantic_lab {
         virtual ~semantic_lab() = default;
-        virtual void logits(float x, float y, float* logits) = 0;
-        virtual void probability_vec(float x, float y, float* p) = 0;
+        virtual bool logits(float x, float y, float* logits) = 0;
+        virtual bool probability_vec(float x, float y, float* p) = 0;
     };
 
     /**
@@ -38,11 +38,11 @@ namespace vso {
         double sigma() const { return _sigma; }
         void set_sigma(double sigma);
 
-        void logits(float x, float y, float* logits) override;
-        void logits(int x, int y, float* logits);
+	    bool logits(float x, float y, float* logits) override;
+        bool logits(int x, int y, float* logits);
 
-        void probability_vec(float x, float y, float* p) override;
-        void probability_vec(int x, int y, float* p);
+	    bool probability_vec(float x, float y, float* p) override;
+	    bool probability_vec(int x, int y, float* p);
 
         bool cache_available() const { return _cache_available; }
         void clear_cache();
@@ -77,7 +77,7 @@ namespace vso {
 
         static const uchar rgb_index[n_classes * n_channels];
 
-        cityscape5(const cv::Mat& semantic_map, double sigma);
+        cityscape5(const cv::Mat& semantic_map, double sigma, double scale = 0.5);
 
         static cv::Vec3b color_of(int cls_idx);
         static int catagory_of(const cv::Vec3b& rgb);
@@ -86,11 +86,11 @@ namespace vso {
         double sigma() const { return _sigma; }
         void set_sigma(double sigma);
 
-        void logits(float x, float y, float* logits) override;
-        void logits(int x, int y, float* logits);
+        bool logits(float x, float y, float* logits) override;
+        //void logits(int x, int y, float* logits);
 
-        void probability_vec(float x, float y, float* p) override;
-        void probability_vec(int x, int y, float* p);
+        bool probability_vec(float x, float y, float* p) override;
+        //void probability_vec(int x, int y, float* p);
 
         bool cache_available() const { return _cache_available; }
         void clear_cache();
@@ -100,6 +100,7 @@ namespace vso {
         bool _check_uv(float u, float v, float border = 0.f) const;
 
         double  _sigma;
+        double  _scale;
         cv::Mat _semantic_map;
     public:
         bool    _cache_available;

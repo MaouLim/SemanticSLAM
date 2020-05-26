@@ -41,6 +41,11 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
     }
+#ifdef _DISABLE_LOOP_CLOSURE_
+	std::cout << "Loop Closure OFF." << std::endl;
+#else
+    std::cout << "Loop Closure ON." << std::endl;
+#endif
 
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
@@ -48,9 +53,9 @@ int main(int argc, char **argv)
     LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps);
 
     int nImages = vstrImageFilenames.size();
-
+	bool use_semantic = true;
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, true);
+    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, use_semantic);
 
     cv::FileStorage fs_settings(argv[2], cv::FileStorage::READ);
     const float fps = fs_settings["Camera.fps"];
@@ -75,7 +80,7 @@ int main(int argc, char **argv)
         if(im.empty())
         {
             cerr << endl << "Failed to load image at: " << vstrImageFilenames[ni] << endl;
-            return 1;
+	        continue;
         }
 
 #ifdef COMPILEDWITHC11
@@ -109,6 +114,9 @@ int main(int argc, char **argv)
         
         if (T < ft) { usleep((ft - T) * 1e6); }
         else if (ttrack < ft) { usleep((ft - ttrack) * 1e6); }
+        if (!use_semantic) {
+	        //usleep(1.5e6);
+        }
     }
 
     // Stop all threads
@@ -126,7 +134,7 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");    
+    SLAM.SaveKeyFrameTrajectoryTUM("Trajectory.txt");
 
     return 0;
 }

@@ -48,7 +48,8 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 
 void LocalMapping::Run()
 {
-
+	double local_ba_ms = 0.;
+	size_t local_ba_count = 0;
     mbFinished = false;
 
     while(1)
@@ -83,13 +84,19 @@ void LocalMapping::Run()
                     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap, _use_semantic);
                     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-                    std::cout << "Local BA time used: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
+                    ++local_ba_count;
+	                auto ms_cur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	                local_ba_ms += ms_cur;
+                    std::cout << "Local BA time used cur: " << ms_cur << std::endl;
+	                std::cout << "Local BA time used avg: " << local_ba_ms / local_ba_count << std::endl;
                 }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
             }
-
-            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+#ifdef _DISABLE_LOOP_CLOSURE_
+#else
+	        mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+#endif
         }
         else if(Stop())
         {

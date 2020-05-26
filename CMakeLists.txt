@@ -8,10 +8,10 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -50,39 +50,41 @@ ${Pangolin_INCLUDE_DIRS}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+add_definitions(-D_DISABLE_LOOP_CLOSURE_)
+#option(_DISABLE_LOOP_CLOSURE_ "Disable the loop closure." ON)
 
-add_library(${PROJECT_NAME} SHARED
-src/System.cc
-src/Tracking.cc
-src/LocalMapping.cc
-src/LoopClosing.cc
-src/ORBextractor.cc
-src/ORBmatcher.cc
-src/FrameDrawer.cc
-src/Converter.cc
-src/MapPoint.cc
-src/KeyFrame.cc
-src/Map.cc
-src/MapDrawer.cc
-src/Optimizer.cc
-src/PnPsolver.cc
-src/Frame.cc
-src/KeyFrameDatabase.cc
-src/Sim3Solver.cc
-src/Initializer.cc
-src/Viewer.cc
-src/semantic_lab.cpp
-src/semantic_classifier.cpp
-src/semantic_g2o_staff.cpp
-)
-
-target_link_libraries(${PROJECT_NAME}
-${OpenCV_LIBS}
-${EIGEN3_LIBS}
-${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-)
+#add_library(${PROJECT_NAME} SHARED
+#src/System.cc
+#src/Tracking.cc
+#src/LocalMapping.cc
+#src/LoopClosing.cc
+#src/ORBextractor.cc
+#src/ORBmatcher.cc
+#src/FrameDrawer.cc
+#src/Converter.cc
+#src/MapPoint.cc
+#src/KeyFrame.cc
+#src/Map.cc
+#src/MapDrawer.cc
+#src/Optimizer.cc
+#src/PnPsolver.cc
+#src/Frame.cc
+#src/KeyFrameDatabase.cc
+#src/Sim3Solver.cc
+#src/Initializer.cc
+#src/Viewer.cc
+#src/semantic_lab.cpp
+#src/semantic_classifier.cpp
+#src/semantic_g2o_staff.cpp
+#)
+#
+#target_link_libraries(${PROJECT_NAME}
+#${OpenCV_LIBS}
+#${EIGEN3_LIBS}
+#${Pangolin_LIBRARIES}
+#${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+#${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+#)
 
 # Build examples
 
@@ -110,8 +112,36 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 # target_link_libraries(mono_tum ${PROJECT_NAME})
 
 add_executable(mono_kitti
-Examples/Monocular/mono_kitti.cc)
-target_link_libraries(mono_kitti ${PROJECT_NAME})
+Examples/Monocular/mono_kitti.cc
+        src/System.cc
+        src/Tracking.cc
+        src/LocalMapping.cc
+        src/LoopClosing.cc
+        src/ORBextractor.cc
+        src/ORBmatcher.cc
+        src/FrameDrawer.cc
+        src/Converter.cc
+        src/MapPoint.cc
+        src/KeyFrame.cc
+        src/Map.cc
+        src/MapDrawer.cc
+        src/Optimizer.cc
+        src/PnPsolver.cc
+        src/Frame.cc
+        src/KeyFrameDatabase.cc
+        src/Sim3Solver.cc
+        src/Initializer.cc
+        src/Viewer.cc
+        src/semantic_lab.cpp
+        src/semantic_classifier.cpp
+        src/semantic_g2o_staff.cpp)
+target_link_libraries(mono_kitti
+   ${OpenCV_LIBS}
+   ${EIGEN3_LIBS}
+   ${Pangolin_LIBRARIES}
+   ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+   ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+)
 
 # add_executable(mono_euroc
 # Examples/Monocular/mono_euroc.cc)
