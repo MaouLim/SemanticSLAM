@@ -7,7 +7,7 @@
 
 namespace obj_slam {
 
-    struct detected_obj {
+    struct detected_bbox {
 
         Eigen::Vector4d bbox; // (xmin, ymin, xmax, ymax)
         float           prob; // prob
@@ -17,7 +17,7 @@ namespace obj_slam {
     struct obj_detector {
 
         virtual ~obj_detector() = default;
-        virtual std::vector<detected_obj> detect(const cv::Mat& rgb_img, double timestamp) = 0;
+        virtual std::vector<detected_bbox> detect(const cv::Mat& rgb_img, double timestamp) = 0;
     };
 
     struct fake_detector : obj_detector {
@@ -25,7 +25,7 @@ namespace obj_slam {
         explicit fake_detector(const std::string& precalc_path);
         virtual ~fake_detector() = default;
 
-        std::vector<detected_obj> detect(const cv::Mat& rgb_img, double timestamp) override;
+        std::vector<detected_bbox> detect(const cv::Mat& rgb_img, double timestamp) override;
     
     private:
         std::unordered_map<double, std::string> _obj_map;

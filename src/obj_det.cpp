@@ -25,18 +25,18 @@ namespace obj_slam {
         }
     }
 
-    std::vector<detected_obj> 
+    std::vector<detected_bbox> 
     fake_detector::detect(const cv::Mat& rgb_img, double timestamp) {
         std::ifstream fin(_obj_map[timestamp], std::ios_base::in);
         assert(fin.good());
 
-        std::vector<detected_obj> res;
+        std::vector<detected_bbox> res;
         while (!fin.eof()) {
             std::string line;
             std::getline(fin, line);
             if (line.empty()) { continue; }
 
-            detected_obj obj;
+            detected_bbox obj;
             obj.cls = 0;
 
             std::stringstream sstream(line);
