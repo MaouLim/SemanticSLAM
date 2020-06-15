@@ -105,8 +105,27 @@ cv::Mat FrameDrawer::DrawFrame()
                 // This is a match to a MapPoint in the map
                 if(vbMap[i])
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                	static cv::Scalar color_table[6] = {
+		                cv::Scalar(128,  64, 128), // road
+		                cv::Scalar(232,  35, 244), // sidewalk
+		                cv::Scalar( 70,  70,  70), // building
+		                cv::Scalar( 35, 142, 107), // vegetation
+		                cv::Scalar(142,   0,   0), // car
+		                cv::Scalar(  0,   0,   0)  // none
+                	};
+                	if (mps.size() <= i || !mps[i]) {
+                		std::cerr << "Warning: mps.size() <= i || !mps[i]" << std::endl;
+		                continue;
+                	}
+                	int cls = mps[i]->get_class();
+	                if (cls < 0 || 5 < cls) {
+		                std::cerr << "Warning: ls < 0 || 5 < cls" << std::endl;
+		                continue;
+	                }
+	                cv::rectangle(im, pt1, pt2, color_table[cls]);
+	                cv::circle(im, vCurrentKeys[i].pt, 2, color_table[cls], -1);
+                    //cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                    //cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
@@ -169,6 +188,7 @@ void FrameDrawer::Update(Tracking *pTracker)
     unique_lock<mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
+    mps = pTracker->mCurrentFrame.mvpMapPoints;
     N = mvCurrentKeys.size();
     mvbVO = vector<bool>(N,false);
     mvbMap = vector<bool>(N,false);

@@ -34,6 +34,7 @@
 #include "PnPsolver.h"
 
 #include "semantic_classifier.hpp"
+#include "semantic_lab.hpp"
 
 #include<iostream>
 #include<mutex>
@@ -618,11 +619,11 @@ void Tracking::MonocularInitialization()
         }
 
         // Find correspondences
-        ORBmatcher matcher(0.9,true);
+        ORBmatcher matcher(0.8, true);
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
 
         // Check if there are enough correspondences
-        if(nmatches<100)
+        if(nmatches < 100)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
@@ -670,6 +671,8 @@ void Tracking::CreateInitialMapMonocular()
     mpMap->AddKeyFrame(pKFini);
     mpMap->AddKeyFrame(pKFcur);
 
+    float pvec[vso::cityscape5::n_classes];
+
     // Create MapPoints and asscoiate to keyframes
     for(size_t i=0; i<mvIniMatches.size();i++)
     {
@@ -681,9 +684,21 @@ void Tracking::CreateInitialMapMonocular()
 
         MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap);
 
+        // add semantic info to mappoint
+        if (_use_semantic) {
+            const auto& pt_ini = pKFini->mvKeysUn[i].pt;
+            pKFini->_lab->probability_vec(pt_ini.x, pt_ini.y, pvec);
+            pMP->add_semantic_info(pvec);
+            const auto& pt_cur = pKFcur->mvKeysUn[i].pt;
+            pKFcur->_lab->probability_vec(pt_cur.x, pt_cur.y, pvec);
+            pMP->add_semantic_info(pvec);
+        }
+
+        // add mappoint ref to keyframe
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);
 
+        // add keyframe ref to mappoint
         pMP->AddObservation(pKFini,i);
         pMP->AddObservation(pKFcur,mvIniMatches[i]);
 
@@ -812,8 +827,18 @@ bool Tracking::TrackReferenceKeyFrame()
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
                 nmatches--;
             }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0) {
                 nmatchesMap++;
+                
+                // semantic
+                if (_use_semantic) {
+                    float pvec[vso::cityscape5::n_classes];
+                    MapPoint* mp = mCurrentFrame.mvpMapPoints[i];
+                    const auto& pt = mCurrentFrame.mvKeysUn[i].pt;
+                    mCurrentFrame._semantic_lab->probability_vec(pt.x, pt.y, pvec);
+                    mp->add_semantic_info(pvec);
+                }
+            }
         }
     }
 
@@ -935,10 +960,20 @@ bool Tracking::TrackWithMotionModel()
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
                 nmatches--;
             }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0) {
                 nmatchesMap++;
+
+                // semantic
+                if (_use_semantic) {
+                    float pvec[vso::cityscape5::n_classes];
+                    MapPoint* mp = mCurrentFrame.mvpMapPoints[i];
+                    const auto& pt = mCurrentFrame.mvKeysUn[i].pt;
+                    mCurrentFrame._semantic_lab->probability_vec(pt.x, pt.y, pvec);
+                    mp->add_semantic_info(pvec);
+                }
+            }
         }
-    }    
+    }
 
     if(mbOnlyTracking)
     {

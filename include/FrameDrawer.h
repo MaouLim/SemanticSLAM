@@ -65,6 +65,8 @@ protected:
 
     Map* mpMap;
 
+    std::vector<MapPoint*> mps;
+
     std::mutex mMutex;
 };
 

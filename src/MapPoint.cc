@@ -21,6 +21,8 @@
 #include "MapPoint.h"
 #include "ORBmatcher.h"
 
+#include "semantic_lab.hpp"
+
 #include<mutex>
 
 namespace ORB_SLAM2
@@ -41,6 +43,9 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
     mnId=nNextId++;
+
+    prob_vec.resize(vso::cityscape5::n_classes, 1. / vso::cityscape5::n_classes);
+    n_semantic_info = 0;
 }
 
 MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF):
@@ -68,6 +73,31 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
     mnId=nNextId++;
+
+    prob_vec.resize(vso::cityscape5::n_classes, 1. / vso::cityscape5::n_classes);
+    n_semantic_info = 0;
+}
+
+void MapPoint::add_semantic_info(float* pvec) {
+    ++n_semantic_info;
+    float sum = 0.f;
+    for (int i = 0; i < vso::cityscape5::n_classes; ++i) {
+        prob_vec[i] *= pvec[i];
+        sum += prob_vec[i];
+    }
+    for (int i = 0; i < vso::cityscape5::n_classes; ++i) {
+        prob_vec[i] /= sum;
+    }
+}
+
+int MapPoint::get_class() const {
+    int max_idx = 0;
+    for (int i = 1; i < vso::cityscape5::n_classes; ++i) {
+        if (prob_vec[max_idx] < prob_vec[i]) {
+            max_idx = i;
+        }
+    }
+    return max_idx;
 }
 
 void MapPoint::SetWorldPos(const cv::Mat &Pos)

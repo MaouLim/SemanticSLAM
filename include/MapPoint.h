@@ -112,6 +112,11 @@ public:
 
     static std::mutex mGlobalMutex;
 
+    std::vector<float> prob_vec;
+    size_t             n_semantic_info;
+    void add_semantic_info(float* pvec);
+    int  get_class() const;
+
 protected:    
 
      // Position in absolute coordinates

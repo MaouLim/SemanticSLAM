@@ -60,22 +60,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
 
 	if (!F._semantic_lab) { return; }
     // setup semantic label
-    if (N != mvKeysUn.size()) { std::cout << "???" << std::endl; }
     _lab = F._semantic_lab;
-	_prob_vecs.resize(N * vso::cityscape5::n_classes, 0.f);
-	_prob_vecs_avaliable.resize(N, false);
-	float* ptr = _prob_vecs.data();
-    for (auto i = 0; i < N; ++i) {
-	    const cv::Point2f& kpt = mvKeysUn[i].pt;
-	    _prob_vecs_avaliable[i] =
-	    	F._semantic_lab->probability_vec(kpt.x, kpt.y, ptr);
-	    ptr += vso::cityscape5::n_classes;
-    }
-}
-
-const float* KeyFrame::prob_vec(int idx) const {
-	if (N <= idx || !_prob_vecs_avaliable[idx]) { return nullptr; }
-	return _prob_vecs.data() + vso::cityscape5::n_classes * idx;
 }
 
 void KeyFrame::ComputeBoW()

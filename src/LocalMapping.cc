@@ -23,6 +23,8 @@
 #include "ORBmatcher.h"
 #include "Optimizer.h"
 
+#include "semantic_lab.hpp"
+
 #include <mutex>
 #include <unistd.h>
 
@@ -447,6 +449,16 @@ void LocalMapping::CreateNewMapPoints()
 
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);
+
+            if (_use_semantic) {
+                float pvec[vso::cityscape5::n_classes];
+                const auto& pt1 = mpCurrentKeyFrame->mvKeysUn[idx1].pt;
+                mpCurrentKeyFrame->_lab->probability_vec(pt1.x, pt1.y, pvec);
+                pMP->add_semantic_info(pvec);
+                const auto& pt2 = pKF2->mvKeysUn[idx2].pt;
+                pKF2->_lab->probability_vec(pt2.x, pt2.y, pvec);
+                pMP->add_semantic_info(pvec);
+            }
 
             mpCurrentKeyFrame->AddMapPoint(pMP,idx1);
             pKF2->AddMapPoint(pMP,idx2);

@@ -667,26 +667,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             // Set semantic edges
             size_t n_cls = vso::cityscape5::n_classes;
 
-            std::vector<float> weights(n_cls, 1.f);
-            size_t n_observed = 0;
-
-            // Step 1. E-Step: calculate the weights for the map point Pi
-            for (const auto& ob : observations) {
-                KeyFrame* kf = ob.first;
-                if (kf->isBad()) { continue; }
-				const float* pvec = kf->prob_vec(ob.second);
-                if (!pvec) { continue; }
-                ++n_observed;
-                for (size_t i = 0; i < n_cls; ++i) { weights[i] *= pvec[i]; }
-            }
-
-            if (n_observed < 2) { continue; }
-
-            float scale_factor = 0.f;
-            for (float  w : weights) { scale_factor += w; }
-            for (float& w : weights) { w /= scale_factor; }
-
-            const int max_obs = 4;
+            const int max_obs = 10;
             int count = 0;
             // Step 2. M-Step: create g2o edges
             for (const auto& ob : observations) {
@@ -698,7 +679,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 	            }
 
                 g2o::edge_semantic_err* e = 
-                    new g2o::edge_semantic_err(kf->mnMaxY - kf->mnMinY, kf->mnMaxX - kf->mnMinX, weights);
+                    new g2o::edge_semantic_err(kf->mnMaxY - kf->mnMinY, kf->mnMaxX - kf->mnMinX, pMP->prob_vec/* weights*/);
                 e->fx = kf->fx; e->fy = kf->fy;
                 e->cx = kf->cx; e->cy = kf->cy;
                 e->lamda = lamda;
