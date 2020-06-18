@@ -24,8 +24,10 @@
 
 #include "semantic_classifier.hpp"
 #include "semantic_lab.hpp"
+#include "object_detection.cpp"
 
 #include <thread>
+#include <sophus_templ/se3.hpp>
 
 namespace ORB_SLAM2
 {
@@ -60,9 +62,38 @@ Frame::Frame(const Frame &frame)
     if(!frame.mTcw.empty())
         SetPose(frame.mTcw);
 
-    _classifier = frame._classifier;
-    _semantic_lab = frame._semantic_lab;
+	lab = frame.lab;
+	detected_objs = frame.detected_objs;
+	obj_pts3d = frame.obj_pts3d;
+	image = frame.image;
 }
+
+//Frame::Frame(Frame&& frame)
+//	:mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight),
+//	 mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()),
+//	 mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeys(frame.mvKeys),
+//	 mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn),  mvuRight(frame.mvuRight),
+//	 mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
+//	 mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
+//	 mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId),
+//	 mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
+//	 mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
+//	 mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
+//	 mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2)
+//{
+//	for(int i=0;i<FRAME_GRID_COLS;i++)
+//		for(int j=0; j<FRAME_GRID_ROWS; j++)
+//			mGrid[i][j]=frame.mGrid[i][j];
+//
+//	if(!frame.mTcw.empty())
+//		SetPose(frame.mTcw);
+//
+//	lab = std::move(frame.lab);
+//	detected_objs = std::move(frame.detected_objs);
+//	obj_pts3d = std::move(frame.obj_pts3d);
+//	status = std::move(frame.status);
+//	image = frame.image;
+//}
 
 
 Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
@@ -240,7 +271,8 @@ Frame::Frame(
     double                    timeStamp, 
     ORBextractor*             extractor, 
     ORBVocabulary*            voc, 
-    vso::semantic_classifier* classifier, 
+    vso::semantic_classifier* classifier,
+    obj_slam::obj_detector*   detector,
     cv::Mat&                  K, 
     cv::Mat&                  distCoef, 
     float                     bf, 
@@ -303,9 +335,69 @@ Frame::Frame(
     AssignFeaturesToGrid();
 
     // semantic setup
-    assert(classifier);
-    _classifier = classifier;
-    _semantic_lab = _classifier->compute(imgColor, mTimeStamp);
+    //assert(classifier && detector);
+    if (!classifier || !detector) {
+    	std::cerr << "classifier or detector is null" << std::endl;
+    }
+	lab = classifier->compute(imgColor, mTimeStamp);
+	detected_objs = detector->detect(imgColor, mTimeStamp);
+	this->image = imgColor;
+}
+
+bool Frame::compute_obj_pts3d(const Frame& prev) {
+
+	cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+	for (auto& obj : detected_objs) {
+		int xmin = obj.bbox[0], ymin = obj.bbox[1];
+		if (xmin < 0) { xmin = 0; }
+		if (ymin < 0) { ymin = 0; }
+		int xmax = xmin + obj.bbox[2], ymax = ymin + obj.bbox[3];
+		if (mask.cols <= xmax) { xmax = mask.cols - 1; }
+		if (mask.rows <= ymax) { ymax = mask.rows - 1; }
+		cv::Rect2i roi_rect(xmin, ymin, xmax - xmin, ymax - ymin);
+		mask(roi_rect) = 1;
+	}
+
+	std::vector<cv::KeyPoint> kpts;
+	cv::Ptr<cv::GFTTDetector> det = cv::GFTTDetector::create(500, 0.001, 1, 3);
+	det->detect(image, kpts, mask);
+
+	std::vector<cv::Point2f> obj_pts2d;
+	obj_pts2d.reserve(kpts.size());
+
+	float pvec[vso::cityscape5::n_classes];
+	for (auto& kpt : kpts) {
+		const auto& pt = kpt.pt;
+		lab->probability_vec(pt.x, pt.y, pvec);
+		if (0.75 < pvec[vso::cityscape5::CAR]) {
+			obj_pts2d.push_back(pt);
+		}
+	}
+
+	if (obj_pts2d.empty()) { return false; }
+
+	std::vector<uchar> status;
+	std::vector<float> errors;
+	std::vector<cv::Point2f> last_pts;
+	cv::calcOpticalFlowPyrLK(image, prev.image, obj_pts2d, last_pts, status, errors);
+
+	cv::Mat proj_mat_cur = mK * mTcw.rowRange(0, 3);
+	cv::Mat proj_mat_prv = prev.mK * prev.mTcw.rowRange(0, 3);
+	cv::Mat output4d;
+	cv::triangulatePoints(proj_mat_cur, proj_mat_prv, obj_pts2d, last_pts, output4d);
+
+	if (output4d.type() != CV_32F) { std::cerr << "data type unmatched." << std::endl; exit(0); }
+	if (output4d.cols != status.size()) { std::cerr << "size unmatched." << std::endl; exit(0); }
+
+	obj_pts3d.reserve(obj_pts2d.size());
+	for (auto i = 0; i < output4d.cols; ++i) {
+		if (!status[i]) { continue; }
+		cv::Mat pt4d = output4d.col(i);
+		obj_pts3d.emplace_back(pt4d.at<float>(0), pt4d.at<float>(1), pt4d.at<float>(2));
+		obj_pts3d.back() /= pt4d.at<float>(3);
+	}
+
+	return true;
 }
 
 Frame::~Frame() {

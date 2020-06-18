@@ -2,7 +2,7 @@
 #define _QUADRIC_OBJECT_HPP_
 
 #include "ellipsoid.hpp"
-#include "obj_det.hpp"
+#include "object_detection.hpp"
 
 namespace obj_slam {
 

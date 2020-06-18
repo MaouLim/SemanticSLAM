@@ -57,7 +57,7 @@ class Tracking
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool use_semantic = false);
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool _use_semantic = false);
 
     ~Tracking();
 
@@ -95,8 +95,6 @@ public:
 
     // Input sensor
     int mSensor;
-
-    bool _use_semantic;
 
     // Current Frame
     Frame mCurrentFrame;
@@ -222,7 +220,9 @@ protected:
     list<MapPoint*> mlpTemporalPoints;
 
     // semantic staff
-    vso::semantic_classifier* _classifier;
+	bool                      use_semantic;
+    vso::semantic_classifier* classifier;
+    obj_slam::obj_detector*   detector;
 };
 
 } //namespace ORB_SLAM

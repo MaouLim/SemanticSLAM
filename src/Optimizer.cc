@@ -687,7 +687,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
                 e->setInformation(Eigen::Matrix<double, 1, 1>::Identity());
                 e->setVertex(0, optimizer.vertex(kf->mnId));
                 e->setVertex(1, optimizer.vertex(id));
-                e->setMeasurement(kf->_lab.get());
+                e->setMeasurement(kf->lab.get());
 
                 optimizer.addEdge(e);
                 semantic_edges.push_back(e);
@@ -769,7 +769,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     //         auto observations = mp->GetObservations();
     //         for (auto& ob : observations) {
     //             KeyFrame* kf = ob.first;
-    //             ((vso::cityscape5*) kf->_lab.get())->clear_cache();
+    //             ((vso::cityscape5*) kf->lab.get())->clear_cache();
     //         }
     //     }
     // }

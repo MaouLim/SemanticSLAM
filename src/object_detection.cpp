@@ -1,4 +1,4 @@
-#include "obj_det.hpp"
+#include "object_detection.hpp"
 
 namespace obj_slam {
 
@@ -41,9 +41,7 @@ namespace obj_slam {
 
             std::stringstream sstream(line);
             sstream >> obj.prob;
-            int data[4];
-            for (int i = 0; i < 4; ++i) { sstream >> data[i]; }
-            obj.bbox << data[0], data[1], data[0] + data[2], data[1] + data[3];
+            for (int i = 0; i < 4; ++i) { sstream >> obj.bbox[i]; }
             res.push_back(obj);
         }
 

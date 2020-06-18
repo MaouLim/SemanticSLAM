@@ -35,6 +35,7 @@
 
 #include "semantic_classifier.hpp"
 #include "semantic_lab.hpp"
+#include "object_detection.hpp"
 
 #include<iostream>
 #include<mutex>
@@ -45,16 +46,20 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool use_semantic):
+Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool _use_semantic):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
 {
-    _use_semantic = use_semantic;
-    if (_use_semantic) {
-        _classifier = new vso::fake_classifier("data/");
+	use_semantic = _use_semantic;
+    if (use_semantic) {
+	    classifier = new vso::fake_classifier("data/");
+	    detector = new obj_slam::fake_detector("data/");
     } 
-    else { _classifier = nullptr; }
+    else {
+    	classifier = nullptr;
+    	detector = nullptr;
+    }
 
     // Load camera parameters from settings file
 
@@ -156,7 +161,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 
 }
 
-Tracking::~Tracking() { delete _classifier; }
+Tracking::~Tracking() { delete classifier; }
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -266,16 +271,24 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     }
 
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET) {
-        if (_use_semantic) {
-            mCurrentFrame = Frame(img_color, timestamp, mpIniORBextractor, mpORBVocabulary, _classifier, mK,mDistCoef, mbf, mThDepth);
+        if (use_semantic) {
+            mCurrentFrame = Frame(
+            	img_color, timestamp, mpIniORBextractor, mpORBVocabulary,
+            	classifier, detector,
+            	mK, mDistCoef, mbf, mThDepth
+            );
         }
         else {
             mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
         }
     }
     else {
-        if (_use_semantic) {
-            mCurrentFrame = Frame(img_color, timestamp, mpORBextractorLeft, mpORBVocabulary, _classifier, mK, mDistCoef,mbf, mThDepth);
+        if (use_semantic) {
+            mCurrentFrame = Frame(
+            	img_color, timestamp, mpORBextractorLeft, mpORBVocabulary,
+            	classifier, detector,
+            	mK, mDistCoef, mbf, mThDepth
+            );
         }
         else {
             mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
@@ -685,12 +698,12 @@ void Tracking::CreateInitialMapMonocular()
         MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap);
 
         // add semantic info to mappoint
-        if (_use_semantic) {
+        if (use_semantic) {
             const auto& pt_ini = pKFini->mvKeysUn[i].pt;
-            pKFini->_lab->probability_vec(pt_ini.x, pt_ini.y, pvec);
+            pKFini->lab->probability_vec(pt_ini.x, pt_ini.y, pvec);
             pMP->add_semantic_info(pvec);
             const auto& pt_cur = pKFcur->mvKeysUn[i].pt;
-            pKFcur->_lab->probability_vec(pt_cur.x, pt_cur.y, pvec);
+            pKFcur->lab->probability_vec(pt_cur.x, pt_cur.y, pvec);
             pMP->add_semantic_info(pvec);
         }
 
@@ -831,16 +844,19 @@ bool Tracking::TrackReferenceKeyFrame()
                 nmatchesMap++;
                 
                 // semantic
-                if (_use_semantic) {
+                if (use_semantic) {
                     float pvec[vso::cityscape5::n_classes];
                     MapPoint* mp = mCurrentFrame.mvpMapPoints[i];
                     const auto& pt = mCurrentFrame.mvKeysUn[i].pt;
-                    mCurrentFrame._semantic_lab->probability_vec(pt.x, pt.y, pvec);
+                    mCurrentFrame.lab->probability_vec(pt.x, pt.y, pvec);
                     mp->add_semantic_info(pvec);
                 }
             }
         }
     }
+
+	if (mLastFrame.mTcw.empty()) { std::cerr << "mLastFrame.mTcw.empty" << std::endl; }
+	mCurrentFrame.compute_obj_pts3d(mLastFrame);
 
     return nmatchesMap>=10;
 }
@@ -964,16 +980,19 @@ bool Tracking::TrackWithMotionModel()
                 nmatchesMap++;
 
                 // semantic
-                if (_use_semantic) {
+                if (use_semantic) {
                     float pvec[vso::cityscape5::n_classes];
                     MapPoint* mp = mCurrentFrame.mvpMapPoints[i];
                     const auto& pt = mCurrentFrame.mvKeysUn[i].pt;
-                    mCurrentFrame._semantic_lab->probability_vec(pt.x, pt.y, pvec);
+                    mCurrentFrame.lab->probability_vec(pt.x, pt.y, pvec);
                     mp->add_semantic_info(pvec);
                 }
             }
         }
     }
+
+	if (mLastFrame.mTcw.empty()) { std::cerr << "mLastFrame.mTcw.empty" << std::endl; }
+	mCurrentFrame.compute_obj_pts3d(mLastFrame);
 
     if(mbOnlyTracking)
     {

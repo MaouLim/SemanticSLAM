@@ -8,10 +8,10 @@
 namespace obj_slam {
 
     struct detected_bbox {
-
-        Eigen::Vector4d bbox; // (xmin, ymin, xmax, ymax)
-        float           prob; // prob
-        int             cls;  // class_idx
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        int   bbox[4]; // (xmin, ymin, w, h)
+        float prob;    // prob
+        int   cls;     // class_idx
     };
 
     struct obj_detector {

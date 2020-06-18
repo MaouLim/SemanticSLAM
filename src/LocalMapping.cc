@@ -31,11 +31,11 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular, bool use_semantic):
+LocalMapping::LocalMapping(Map *pMap, const float bMonocular, bool _use_semantic):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
-    _use_semantic = use_semantic;
+	use_semantic = _use_semantic;
 }
 
 void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
@@ -84,7 +84,7 @@ void LocalMapping::Run()
                 // Local BA
                 if(mpMap->KeyFramesInMap()>2) {
                     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap, _use_semantic);
+                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mpMap, use_semantic);
                     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
                     ++local_ba_count;
 	                auto ms_cur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -450,13 +450,13 @@ void LocalMapping::CreateNewMapPoints()
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);
 
-            if (_use_semantic) {
+            if (use_semantic) {
                 float pvec[vso::cityscape5::n_classes];
                 const auto& pt1 = mpCurrentKeyFrame->mvKeysUn[idx1].pt;
-                mpCurrentKeyFrame->_lab->probability_vec(pt1.x, pt1.y, pvec);
+                mpCurrentKeyFrame->lab->probability_vec(pt1.x, pt1.y, pvec);
                 pMP->add_semantic_info(pvec);
                 const auto& pt2 = pKF2->mvKeysUn[idx2].pt;
-                pKF2->_lab->probability_vec(pt2.x, pt2.y, pvec);
+                pKF2->lab->probability_vec(pt2.x, pt2.y, pvec);
                 pMP->add_semantic_info(pvec);
             }
 

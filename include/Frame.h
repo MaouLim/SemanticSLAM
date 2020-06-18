@@ -30,6 +30,7 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+#include "object_detection.hpp"
 
 #include <opencv2/opencv.hpp>
 
@@ -63,19 +64,6 @@ public:
 
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
-
-    // Constructor for Monocular cameras with semantic classifier.
-    Frame(
-        const cv::Mat&            imgColor, 
-        double                    timeStamp, 
-        ORBextractor*             extractor, 
-        ORBVocabulary*            voc, 
-        vso::semantic_classifier* classifier, 
-        cv::Mat&                  K, 
-        cv::Mat&                  distCoef, 
-        float                     bf, 
-        float                     thDepth
-    );
 
     ~Frame();
 
@@ -159,8 +147,34 @@ public:
     std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
     std::vector<cv::KeyPoint> mvKeysUn;
 
-    vso::semantic_classifier*          _classifier;
-    std::shared_ptr<vso::semantic_lab> _semantic_lab;
+    /**
+     * additions
+     */
+
+	// Constructor for Monocular cameras with semantic classifier.
+	Frame(
+		const cv::Mat&            imgColor,
+		double                    timeStamp,
+		ORBextractor*             extractor,
+		ORBVocabulary*            voc,
+		vso::semantic_classifier* classifier,
+		obj_slam::obj_detector*   detector,
+		cv::Mat&                  K,
+		cv::Mat&                  distCoef,
+		float                     bf,
+		float                     thDepth
+	);
+
+	//Frame(Frame&& frame);
+
+    std::shared_ptr<vso::semantic_lab>   lab;
+    std::vector<obj_slam::detected_bbox> detected_objs;
+    std::vector<Eigen::Vector3d>         obj_pts3d;
+    cv::Mat                              image;
+
+    bool compute_obj_pts3d(const Frame& prev);
+    ///////////////////////////////
+
 
     // Corresponding stereo coordinate and depth for each keypoint.
     // "Monocular" keypoints have a negative value.

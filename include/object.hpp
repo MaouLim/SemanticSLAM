@@ -19,7 +19,7 @@ namespace obj_slam {
 
         std::set<ORB_SLAM2::MapPoint*>      map_points;
         std::map<ORB_SLAM2::Frame*, size_t> observations;
-        std::list<Eigen::Vector3d>          history_centers;
+        std::vector<Eigen::Vector3d>        history_centers;
 
         
     };

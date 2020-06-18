@@ -29,6 +29,8 @@
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
 
+#include <Eigen/Core>
+
 #include <mutex>
 #include <memory>
 
@@ -191,10 +193,8 @@ public:
     const cv::Mat mK;
 
     // semantic staff
-    std::shared_ptr<vso::semantic_lab> _lab;
-    std::vector<float> _prob_vecs;
-    std::vector<bool>  _prob_vecs_avaliable;
-    const float* prob_vec(int idx) const;
+    std::shared_ptr<vso::semantic_lab> lab;
+	std::vector<Eigen::Vector3d>       obj_pts3d;
 
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:

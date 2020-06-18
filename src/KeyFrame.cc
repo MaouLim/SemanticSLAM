@@ -58,9 +58,17 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
 
     SetPose(F.mTcw);
 
-	if (!F._semantic_lab) { return; }
+	if (!F.lab) {
+		std::cerr << "F.lab is null" << std::endl;
+		return;
+	}
     // setup semantic label
-    _lab = F._semantic_lab;
+    lab = F.lab;
+
+	obj_pts3d = std::move(F.obj_pts3d);
+	if (!F.detected_objs.empty() && obj_pts3d.empty()) {
+		std::cerr << "empty 3d points." << std::endl;
+	}
 }
 
 void KeyFrame::ComputeBoW()

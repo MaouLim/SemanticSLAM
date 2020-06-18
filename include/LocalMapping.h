@@ -40,7 +40,7 @@ class Map;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular, bool use_semantic = false);
+    LocalMapping(Map* pMap, const float bMonocular, bool _use_semantic = false);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -122,7 +122,7 @@ protected:
     bool mbAcceptKeyFrames;
     std::mutex mMutexAccept;
 
-    bool _use_semantic;
+    bool use_semantic;
 };
 
 } //namespace ORB_SLAM

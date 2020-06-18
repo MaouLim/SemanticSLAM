@@ -95,6 +95,16 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
             KeyFrame* pKF = vpKFs[i];
             cv::Mat Twc = pKF->GetPoseInverse().t();
 
+			// draw obj points
+	        glPointSize(mPointSize);
+	        glBegin(GL_POINTS);
+	        glColor3f(0.0,1.0,1.0);
+	        for(const auto& pos : pKF->obj_pts3d) {
+		        glVertex3f(pos[0], pos[1], pos[2]);
+	        }
+	        glEnd();
+
+
             glPushMatrix();
 
             glMultMatrixf(Twc.ptr<GLfloat>(0));
