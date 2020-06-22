@@ -1,4 +1,5 @@
 #include "ellipsoid.hpp"
+#include "common.hpp"
 
 namespace obj_slam {
 

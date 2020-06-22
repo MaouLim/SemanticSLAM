@@ -34,6 +34,7 @@
 #include <mutex>
 #include <memory>
 
+namespace obj_slam { struct obj_observation; }
 namespace vso { struct semantic_lab; }
 
 namespace ORB_SLAM2
@@ -193,8 +194,8 @@ public:
     const cv::Mat mK;
 
     // semantic staff
-    std::shared_ptr<vso::semantic_lab> lab;
-	std::vector<Eigen::Vector3d>       obj_pts3d;
+    std::shared_ptr<vso::semantic_lab>      lab;
+	std::vector<obj_slam::obj_observation*> observations;
 
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:

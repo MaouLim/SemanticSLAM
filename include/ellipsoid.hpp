@@ -8,21 +8,6 @@ namespace Eigen {
     using Vector10d = Matrix<double, 10, 1>;
 }
 
-namespace tools {
-
-    inline bool solve_quadratic_equation(
-        double a, double b, double c, double& x0, double& x1
-    ) {
-        assert(0. != a);
-        double delta = b * b - 4 * a * c;
-        if (delta < 0.) { return false; }
-        double delta_sqrt = std::sqrt(delta);
-        x0 = (-b + delta_sqrt) / (2. * a);
-        x1 = (-b - delta_sqrt) / (2. * a);
-        return true;
-    }
-}
-
 namespace obj_slam {
 
     struct ellipsoid {

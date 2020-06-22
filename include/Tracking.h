@@ -40,6 +40,7 @@
 
 #include <mutex>
 
+namespace obj_slam { struct obj_detector; }
 namespace vso { struct semantic_classifier; }
 
 namespace ORB_SLAM2

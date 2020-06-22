@@ -136,7 +136,9 @@ Examples/Monocular/mono_kitti.cc
         src/Viewer.cc
         src/semantic_lab.cpp
         src/semantic_classifier.cpp
-        src/semantic_g2o_staff.cpp)
+        src/semantic_g2o_staff.cpp
+        src/object.cpp
+        src/ellipsoid.cpp)
 target_link_libraries(mono_kitti
    ${OpenCV_LIBS}
    ${EIGEN3_LIBS}
@@ -164,3 +166,9 @@ target_link_libraries(SemanticMemoryUsageTest ${OpenCV_LIBS})
 add_executable(EllipsoidTest
 src/ellipsoid.cpp
 test/test_ellipsoid.cpp)
+
+add_executable(ObjSLAMTest
+src/ellipsoid.cpp
+src/object.cpp
+src/object_detection.cpp
+        src/quadric_g2o_staff.cpp)

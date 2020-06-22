@@ -856,7 +856,8 @@ bool Tracking::TrackReferenceKeyFrame()
     }
 
 	if (mLastFrame.mTcw.empty()) { std::cerr << "mLastFrame.mTcw.empty" << std::endl; }
-	mCurrentFrame.compute_obj_pts3d(mLastFrame);
+	bool ret = mCurrentFrame.create_obj_observations(mLastFrame);
+	if (!ret) { std::cerr << "create_obj_observations() failed." << std::endl; }
 
     return nmatchesMap>=10;
 }
@@ -992,7 +993,8 @@ bool Tracking::TrackWithMotionModel()
     }
 
 	if (mLastFrame.mTcw.empty()) { std::cerr << "mLastFrame.mTcw.empty" << std::endl; }
-	mCurrentFrame.compute_obj_pts3d(mLastFrame);
+	bool ret = mCurrentFrame.create_obj_observations(mLastFrame);
+	if (!ret) { std::cerr << "create_obj_observations() failed." << std::endl; }
 
     if(mbOnlyTracking)
     {

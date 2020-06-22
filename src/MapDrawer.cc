@@ -21,8 +21,13 @@
 #include "MapDrawer.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
+
+#include "object.hpp"
+
 #include <pangolin/pangolin.h>
 #include <mutex>
+#include <random>
+
 
 namespace ORB_SLAM2
 {
@@ -99,8 +104,15 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
 	        glPointSize(mPointSize);
 	        glBegin(GL_POINTS);
 	        glColor3f(0.0,1.0,1.0);
-	        for(const auto& pos : pKF->obj_pts3d) {
-		        glVertex3f(pos[0], pos[1], pos[2]);
+
+	        static std::default_random_engine e;
+	        static std::uniform_real_distribution<float> dist(0.f, 1.f);
+
+	        for (const auto& ob : pKF->observations) {
+	        	glColor3f(dist(e), dist(e), dist(e));
+	        	for (const auto& pos : ob->point_cloud) {
+			        glVertex3f(pos[0], pos[1], pos[2]);
+	        	}
 	        }
 	        glEnd();
 

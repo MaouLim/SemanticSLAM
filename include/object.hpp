@@ -1,27 +1,80 @@
 #ifndef _OBJECT_HPP_
 #define _OBJECT_HPP_
 
-#include <list>
-#include <map>
-#include <set>
+#include <mutex>
+
 #include <Eigen/Core>
+#include <sophus_templ/se3.hpp>
 
-namespace ORB_SLAM2 {  
+#include "object_detection.hpp"
+#include "ellipsoid.hpp"
 
-    class Frame;
-    class KeyFrame;
-    class MapPoint;
-}
+namespace ORB_SLAM2 { class KeyFrame; }
 
 namespace obj_slam {
 
+	struct obj_observation {
+
+		ORB_SLAM2::KeyFrame*         key_frame;
+		Sophus::SE3d                 t_cw;
+		detected_bbox                bbox;
+		std::vector<Eigen::Vector3d> point_cloud;
+
+		obj_observation() : key_frame(nullptr) { }
+
+		obj_observation(const obj_observation&) = delete;
+		obj_observation& operator=(const obj_observation&) = delete;
+
+		obj_observation(obj_observation&&) noexcept;
+		obj_observation& operator=(obj_observation&&) noexcept;
+	};
+
     struct object {
 
-        std::set<ORB_SLAM2::MapPoint*>      map_points;
-        std::map<ORB_SLAM2::Frame*, size_t> observations;
-        std::vector<Eigen::Vector3d>        history_centers;
+	    size_t                        id;
+        std::vector<Eigen::Vector3d>  history_centers;
+        std::vector<Eigen::Vector3d>  point_cloud;
+		std::vector<obj_observation*> observations;
+		size_t                        n_points;
 
-        
+		bool                          quadric_built;
+	    ellipsoid                     param;
+
+		object() : id(_id_seq++), n_points(0), quadric_built(false) { }
+		explicit object(obj_observation* first_ob);
+		~object();
+		object(const object&) = delete;
+		object(object&& rhs) noexcept;
+
+		object& operator=(const object&) = delete;
+		object& operator=(object&& rhs) noexcept;
+
+		bool build_quadric(const Eigen::Matrix3d& cam_mat);
+		void add_observation(obj_observation* ob);
+		void merge(object&& obj);
+
+    private:
+    	void _compute_point_cloud_center();
+    	void _sampling_point_cloud(int max_pts);
+
+		static size_t _id_seq;
+    };
+
+    struct object_manager {
+
+    	std::mutex           obj_mtx;
+	    std::vector<object*> objects;
+
+	    object_manager() = default;
+	    ~object_manager();
+
+		void handle_observation(obj_observation* ob);
+		void optimize();
+
+    private:
+	    int _find_association(const obj_observation* ob);
+	    void _merge_ob(int obj_idx, obj_observation* ob);
+	    void _create_new_obj(obj_observation* ob);
     };
 }
 

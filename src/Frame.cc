@@ -22,12 +22,14 @@
 #include "Converter.h"
 #include "ORBmatcher.h"
 
+#include "common.hpp"
 #include "semantic_classifier.hpp"
 #include "semantic_lab.hpp"
+
+#include "object.hpp"
 #include "object_detection.cpp"
 
 #include <thread>
-#include <sophus_templ/se3.hpp>
 
 namespace ORB_SLAM2
 {
@@ -63,8 +65,8 @@ Frame::Frame(const Frame &frame)
         SetPose(frame.mTcw);
 
 	lab = frame.lab;
-	detected_objs = frame.detected_objs;
-	obj_pts3d = frame.obj_pts3d;
+	bboxes = frame.bboxes;
+	obj_pts3d_seq = frame.obj_pts3d_seq;
 	image = frame.image;
 }
 
@@ -340,37 +342,46 @@ Frame::Frame(
     	std::cerr << "classifier or detector is null" << std::endl;
     }
 	lab = classifier->compute(imgColor, mTimeStamp);
-	detected_objs = detector->detect(imgColor, mTimeStamp);
+	bboxes = detector->detect(imgColor, mTimeStamp);
 	this->image = imgColor;
 }
 
-bool Frame::compute_obj_pts3d(const Frame& prev) {
+bool Frame::_compute_obj_pts3d(const Frame& prev) {
 
-	cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
-	for (auto& obj : detected_objs) {
-		int xmin = obj.bbox[0], ymin = obj.bbox[1];
+	std::vector<std::vector<cv::KeyPoint>> kpts_seq(bboxes.size());
+	size_t total_points = 0;
+	cv::Ptr<cv::GFTTDetector> det = cv::GFTTDetector::create(500, 0.001, 1, 3);
+
+	for (auto i = 0; i < bboxes.size(); ++i) {
+
+		auto& obj = bboxes[i];
+		cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+
+		int xmin = obj.xywh[0], ymin = obj.xywh[1];
 		if (xmin < 0) { xmin = 0; }
 		if (ymin < 0) { ymin = 0; }
-		int xmax = xmin + obj.bbox[2], ymax = ymin + obj.bbox[3];
+		int xmax = xmin + obj.xywh[2], ymax = ymin + obj.xywh[3];
 		if (mask.cols <= xmax) { xmax = mask.cols - 1; }
 		if (mask.rows <= ymax) { ymax = mask.rows - 1; }
+
 		cv::Rect2i roi_rect(xmin, ymin, xmax - xmin, ymax - ymin);
 		mask(roi_rect) = 1;
+
+		det->detect(image, kpts_seq[i], mask);
+		total_points += kpts_seq[i].size();
 	}
 
-	std::vector<cv::KeyPoint> kpts;
-	cv::Ptr<cv::GFTTDetector> det = cv::GFTTDetector::create(500, 0.001, 1, 3);
-	det->detect(image, kpts, mask);
-
 	std::vector<cv::Point2f> obj_pts2d;
-	obj_pts2d.reserve(kpts.size());
+	obj_pts2d.reserve(total_points);
 
 	float pvec[vso::cityscape5::n_classes];
-	for (auto& kpt : kpts) {
-		const auto& pt = kpt.pt;
-		lab->probability_vec(pt.x, pt.y, pvec);
-		if (0.75 < pvec[vso::cityscape5::CAR]) {
-			obj_pts2d.push_back(pt);
+	for (auto & kpts : kpts_seq) {
+		for (auto& kpt : kpts) {
+			const auto& pt = kpt.pt;
+			lab->probability_vec(pt.x, pt.y, pvec);
+			if (0.5 < pvec[vso::cityscape5::CAR]) {
+				obj_pts2d.push_back(pt);
+			}
 		}
 	}
 
@@ -386,15 +397,33 @@ bool Frame::compute_obj_pts3d(const Frame& prev) {
 	cv::Mat output4d;
 	cv::triangulatePoints(proj_mat_cur, proj_mat_prv, obj_pts2d, last_pts, output4d);
 
-	if (output4d.type() != CV_32F) { std::cerr << "data type unmatched." << std::endl; exit(0); }
-	if (output4d.cols != status.size()) { std::cerr << "size unmatched." << std::endl; exit(0); }
+	obj_pts3d_seq.resize(kpts_seq.size());
+	for (auto i = 0; i < obj_pts3d_seq.size(); ++i) {
+		auto& obj_pts3d = obj_pts3d_seq[i];
+		obj_pts3d.reserve(kpts_seq[i].size());
+	}
 
-	obj_pts3d.reserve(obj_pts2d.size());
-	for (auto i = 0; i < output4d.cols; ++i) {
+	size_t obj_idx = 0;
+	for (auto i = 0, j = 0; i < output4d.cols; ++i, ++j) {
+		if (kpts_seq[obj_idx].size() <= j) { j = 0; ++obj_idx; }
 		if (!status[i]) { continue; }
 		cv::Mat pt4d = output4d.col(i);
-		obj_pts3d.emplace_back(pt4d.at<float>(0), pt4d.at<float>(1), pt4d.at<float>(2));
-		obj_pts3d.back() /= pt4d.at<float>(3);
+		obj_pts3d_seq[obj_idx].emplace_back(pt4d.at<float>(0), pt4d.at<float>(1), pt4d.at<float>(2));
+		obj_pts3d_seq[obj_idx].back() /= pt4d.at<float>(3);
+	}
+
+	return true;
+}
+
+bool Frame::create_obj_observations(const Frame& prev) {
+	if (!this->_compute_obj_pts3d(prev)) { return false; }
+
+	observations.resize(bboxes.size(), nullptr);
+	for (auto i = 0; i < observations.size(); ++i) {
+		observations[i] = new obj_slam::obj_observation();
+		observations[i]->bbox = this->bboxes[i];
+		observations[i]->t_cw = tools::to_sophus_se3(this->mTcw);
+		observations[i]->point_cloud = std::move(this->obj_pts3d_seq[i]);
 	}
 
 	return true;

@@ -2,14 +2,13 @@
 #define _OBJECT_DETECTION_HPP_
 
 #include <vector>
-#include <Eigen/Core>
+#include <unordered_map>
 #include <opencv2/opencv.hpp>
 
 namespace obj_slam {
 
     struct detected_bbox {
-		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-        int   bbox[4]; // (xmin, ymin, w, h)
+        int   xywh[4]; // (xmin, ymin, w, h)
         float prob;    // prob
         int   cls;     // class_idx
     };
@@ -31,6 +30,5 @@ namespace obj_slam {
         std::unordered_map<double, std::string> _obj_map;
     };
 }
-
 
 #endif

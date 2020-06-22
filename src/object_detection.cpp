@@ -1,5 +1,7 @@
 #include "object_detection.hpp"
 
+#include <sstream>
+
 namespace obj_slam {
 
     fake_detector::fake_detector(const std::string& precalc_path) {
@@ -41,7 +43,7 @@ namespace obj_slam {
 
             std::stringstream sstream(line);
             sstream >> obj.prob;
-            for (int i = 0; i < 4; ++i) { sstream >> obj.bbox[i]; }
+            for (int i = 0; i < 4; ++i) { sstream >> obj.xywh[i]; }
             res.push_back(obj);
         }
 

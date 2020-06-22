@@ -23,6 +23,7 @@
 #include "ORBmatcher.h"
 
 #include "semantic_lab.hpp"
+#include "object.hpp"
 
 #include<mutex>
 
@@ -64,10 +65,9 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
 	}
     // setup semantic label
     lab = F.lab;
-
-	obj_pts3d = std::move(F.obj_pts3d);
-	if (!F.detected_objs.empty() && obj_pts3d.empty()) {
-		std::cerr << "empty 3d points." << std::endl;
+	observations = std::move(F.observations);
+	for (auto ob : observations) {
+		ob->key_frame = this;
 	}
 }
 

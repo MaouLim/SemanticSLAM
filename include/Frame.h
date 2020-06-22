@@ -30,9 +30,15 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+
 #include "object_detection.hpp"
 
 #include <opencv2/opencv.hpp>
+#include <Eigen/Core>
+
+namespace obj_slam {
+	struct obj_observation;
+}
 
 namespace vso { 
 
@@ -167,12 +173,14 @@ public:
 
 	//Frame(Frame&& frame);
 
-    std::shared_ptr<vso::semantic_lab>   lab;
-    std::vector<obj_slam::detected_bbox> detected_objs;
-    std::vector<Eigen::Vector3d>         obj_pts3d;
-    cv::Mat                              image;
+    std::shared_ptr<vso::semantic_lab>        lab;
+    std::vector<obj_slam::detected_bbox>      bboxes;
+    std::vector<std::vector<Eigen::Vector3d>> obj_pts3d_seq;
+    cv::Mat                                   image;
+	std::vector<obj_slam::obj_observation*>   observations;
 
-    bool compute_obj_pts3d(const Frame& prev);
+    bool _compute_obj_pts3d(const Frame& prev);
+    bool create_obj_observations(const Frame& prev);
     ///////////////////////////////
 
 
