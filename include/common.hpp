@@ -4,8 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <Eigen/Core>
 #include <sophus_templ/se3.hpp>
-
-#include "Thirdparty/g2o/g2o/types/types_six_dof_expmap.h"
+#include <g2o/types/types_six_dof_expmap.h>
 
 namespace tools {
 

@@ -22,6 +22,7 @@
 #ifndef TRACKING_H
 #define TRACKING_H
 
+#include <mutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
@@ -37,8 +38,6 @@
 #include "Initializer.h"
 #include "MapDrawer.h"
 #include "System.h"
-
-#include <mutex>
 
 namespace obj_slam { struct obj_detector; }
 namespace vso { struct semantic_classifier; }

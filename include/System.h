@@ -22,9 +22,9 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include<string>
-#include<thread>
-#include<opencv2/core/core.hpp>
+#include <string>
+#include <thread>
+#include <opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"

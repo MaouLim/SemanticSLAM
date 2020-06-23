@@ -24,17 +24,17 @@
 #include <vector>
 #include <memory>
 
+#include <opencv2/opencv.hpp>
+#include <Eigen/Core>
+#include <DBoW2/BowVector.h>
+#include <DBoW2/FeatureVector.h>
+
 #include "MapPoint.h"
-#include "Thirdparty/DBoW2/DBoW2/BowVector.h"
-#include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
 
 #include "object_detection.hpp"
-
-#include <opencv2/opencv.hpp>
-#include <Eigen/Core>
 
 namespace obj_slam {
 	struct obj_observation;

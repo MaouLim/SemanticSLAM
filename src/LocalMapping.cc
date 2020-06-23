@@ -17,6 +17,8 @@
 * You should have received a copy of the GNU General Public License
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
+#include <mutex>
+#include <unistd.h>
 
 #include "LocalMapping.h"
 #include "LoopClosing.h"
@@ -24,9 +26,6 @@
 #include "Optimizer.h"
 
 #include "semantic_lab.hpp"
-
-#include <mutex>
-#include <unistd.h>
 
 namespace ORB_SLAM2
 {

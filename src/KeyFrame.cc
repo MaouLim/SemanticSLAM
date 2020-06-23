@@ -18,14 +18,14 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include<mutex>
+
 #include "KeyFrame.h"
 #include "Converter.h"
 #include "ORBmatcher.h"
 
 #include "semantic_lab.hpp"
 #include "object.hpp"
-
-#include<mutex>
 
 namespace ORB_SLAM2
 {

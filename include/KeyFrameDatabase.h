@@ -24,13 +24,11 @@
 #include <vector>
 #include <list>
 #include <set>
+#include <mutex>
 
 #include "KeyFrame.h"
 #include "Frame.h"
 #include "ORBVocabulary.h"
-
-#include<mutex>
-
 
 namespace ORB_SLAM2
 {

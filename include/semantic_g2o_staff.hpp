@@ -1,7 +1,7 @@
 #ifndef _SEMANTIC_G2O_STAFF_HPP_
 #define _SEMANTIC_G2O_STAFF_HPP_
 
-#include "Thirdparty/g2o/g2o/types/types_six_dof_expmap.h"
+#include <g2o/types/types_six_dof_expmap.h>
 
 namespace vso { struct semantic_lab; }
 

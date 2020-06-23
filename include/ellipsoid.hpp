@@ -12,6 +12,8 @@ namespace obj_slam {
 
     struct ellipsoid {
 
+	    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
         /**
          * @field pose the SE(3) transformation from world to object center
          * @field scale the 3-d scale of the object

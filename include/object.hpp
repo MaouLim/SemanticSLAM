@@ -15,6 +15,8 @@ namespace obj_slam {
 
 	struct obj_observation {
 
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 		ORB_SLAM2::KeyFrame*         key_frame;
 		Sophus::SE3d                 t_cw;
 		detected_bbox                bbox;
@@ -30,6 +32,10 @@ namespace obj_slam {
 	};
 
     struct object {
+
+	    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    	static constexpr int max_feature_points = 100;
 
 	    size_t                        id;
         std::vector<Eigen::Vector3d>  history_centers;
@@ -55,7 +61,13 @@ namespace obj_slam {
 
     private:
     	void _compute_point_cloud_center();
-    	void _sampling_point_cloud(int max_pts);
+    	void _sampling_point_cloud(int max_pts = max_feature_points);
+
+    	static std::vector<Eigen::Vector3d> _fuse(
+    		const std::vector<Eigen::Vector3d>& pc0,
+    		const std::vector<Eigen::Vector3d>& pc1,
+		    int                                 max_pts
+    	);
 
 		static size_t _id_seq;
     };
@@ -75,6 +87,11 @@ namespace obj_slam {
 	    int _find_association(const obj_observation* ob);
 	    void _merge_ob(int obj_idx, obj_observation* ob);
 	    void _create_new_obj(obj_observation* ob);
+
+	    static double _match(
+	    	const std::vector<Eigen::Vector3d>& cloud0,
+	    	const std::vector<Eigen::Vector3d>& cloud1
+	    );
     };
 }
 

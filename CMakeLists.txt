@@ -8,10 +8,10 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -46,6 +46,9 @@ find_package(SophusTempl REQUIRED)
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
+${PROJECT_SOURCE_DIR}/Thirdparty/g2o/
+${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/
+${PROJECT_SOURCE_DIR}/Thirdparty/alglib/include/
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${SophusTempl_INCLUDE_DIRS}
@@ -139,12 +142,14 @@ Examples/Monocular/mono_kitti.cc
         src/semantic_g2o_staff.cpp
         src/object.cpp
         src/ellipsoid.cpp)
+
 target_link_libraries(mono_kitti
    ${OpenCV_LIBS}
    ${EIGEN3_LIBS}
    ${Pangolin_LIBRARIES}
    ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
    ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+   ${PROJECT_SOURCE_DIR}/Thirdparty/alglib/lib/libALGLIB.so
 )
 
 # add_executable(mono_euroc
@@ -171,4 +176,9 @@ add_executable(ObjSLAMTest
 src/ellipsoid.cpp
 src/object.cpp
 src/object_detection.cpp
-        src/quadric_g2o_staff.cpp)
+src/quadric_g2o_staff.cpp)
+
+add_executable(ObjectDATest
+        test/test_object.cpp)
+target_link_libraries(ObjectDATest
+        ${PROJECT_SOURCE_DIR}/Thirdparty/alglib/lib/libALGLIB.so)

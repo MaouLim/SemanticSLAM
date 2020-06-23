@@ -21,15 +21,14 @@
 #ifndef FRAMEDRAWER_H
 #define FRAMEDRAWER_H
 
-#include "Tracking.h"
-#include "MapPoint.h"
-#include "Map.h"
+#include<mutex>
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include<mutex>
-
+#include "Tracking.h"
+#include "MapPoint.h"
+#include "Map.h"
 
 namespace ORB_SLAM2
 {

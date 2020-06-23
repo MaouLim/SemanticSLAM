@@ -18,6 +18,8 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <thread>
+
 #include "Frame.h"
 #include "Converter.h"
 #include "ORBmatcher.h"
@@ -25,11 +27,8 @@
 #include "common.hpp"
 #include "semantic_classifier.hpp"
 #include "semantic_lab.hpp"
-
 #include "object.hpp"
 #include "object_detection.cpp"
-
-#include <thread>
 
 namespace ORB_SLAM2
 {
@@ -350,7 +349,7 @@ bool Frame::_compute_obj_pts3d(const Frame& prev) {
 
 	std::vector<std::vector<cv::KeyPoint>> kpts_seq(bboxes.size());
 	size_t total_points = 0;
-	cv::Ptr<cv::GFTTDetector> det = cv::GFTTDetector::create(500, 0.001, 1, 3);
+	cv::Ptr<cv::GFTTDetector> det = cv::GFTTDetector::create(400, 0.001, 1, 3);
 
 	for (auto i = 0; i < bboxes.size(); ++i) {
 
@@ -373,7 +372,10 @@ bool Frame::_compute_obj_pts3d(const Frame& prev) {
 
 	std::vector<cv::Point2f> obj_pts2d;
 	obj_pts2d.reserve(total_points);
+	std::vector<int> cls;
+	cls.reserve(total_points);
 
+	int cls_idx = 0;
 	float pvec[vso::cityscape5::n_classes];
 	for (auto & kpts : kpts_seq) {
 		for (auto& kpt : kpts) {
@@ -381,8 +383,10 @@ bool Frame::_compute_obj_pts3d(const Frame& prev) {
 			lab->probability_vec(pt.x, pt.y, pvec);
 			if (0.5 < pvec[vso::cityscape5::CAR]) {
 				obj_pts2d.push_back(pt);
+				cls.push_back(cls_idx);
 			}
 		}
+		++cls_idx;
 	}
 
 	if (obj_pts2d.empty()) { return false; }
@@ -398,16 +402,16 @@ bool Frame::_compute_obj_pts3d(const Frame& prev) {
 	cv::triangulatePoints(proj_mat_cur, proj_mat_prv, obj_pts2d, last_pts, output4d);
 
 	obj_pts3d_seq.resize(kpts_seq.size());
+
 	for (auto i = 0; i < obj_pts3d_seq.size(); ++i) {
 		auto& obj_pts3d = obj_pts3d_seq[i];
 		obj_pts3d.reserve(kpts_seq[i].size());
 	}
 
-	size_t obj_idx = 0;
-	for (auto i = 0, j = 0; i < output4d.cols; ++i, ++j) {
-		if (kpts_seq[obj_idx].size() <= j) { j = 0; ++obj_idx; }
+	for (auto i = 0; i < output4d.cols; ++i) {
 		if (!status[i]) { continue; }
 		cv::Mat pt4d = output4d.col(i);
+		int obj_idx = cls[i];
 		obj_pts3d_seq[obj_idx].emplace_back(pt4d.at<float>(0), pt4d.at<float>(1), pt4d.at<float>(2));
 		obj_pts3d_seq[obj_idx].back() /= pt4d.at<float>(3);
 	}
@@ -418,12 +422,23 @@ bool Frame::_compute_obj_pts3d(const Frame& prev) {
 bool Frame::create_obj_observations(const Frame& prev) {
 	if (!this->_compute_obj_pts3d(prev)) { return false; }
 
-	observations.resize(bboxes.size(), nullptr);
-	for (auto i = 0; i < observations.size(); ++i) {
-		observations[i] = new obj_slam::obj_observation();
-		observations[i]->bbox = this->bboxes[i];
-		observations[i]->t_cw = tools::to_sophus_se3(this->mTcw);
-		observations[i]->point_cloud = std::move(this->obj_pts3d_seq[i]);
+	const std::string prefix("point_cloud");
+	std::ofstream fout(prefix + std::to_string(mnId) + std::string(".txt"));
+
+	observations.reserve(obj_pts3d_seq.size());
+	for (auto i = 0; i < obj_pts3d_seq.size(); ++i) {
+		if (this->obj_pts3d_seq[i].size() < 20) { continue; }
+
+		auto ob = new obj_slam::obj_observation();
+		ob->bbox = this->bboxes[i];
+		ob->t_cw = tools::to_sophus_se3(this->mTcw);
+		ob->point_cloud = std::move(this->obj_pts3d_seq[i]);
+
+		observations.push_back(ob);
+
+		for (auto& each : ob->point_cloud) {
+			fout << i << " " << each[0] << " " << each[1] << " " << each[2] << std::endl;
+		}
 	}
 
 	return true;

@@ -18,13 +18,12 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "FrameDrawer.h"
-#include "Tracking.h"
-
+#include <mutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include<mutex>
+#include "FrameDrawer.h"
+#include "Tracking.h"
 
 namespace ORB_SLAM2
 {

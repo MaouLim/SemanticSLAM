@@ -1,5 +1,7 @@
 #include "object.hpp"
 
+#include <statistics.h>
+
 #include "Frame.h"
 
 namespace obj_slam {
@@ -23,8 +25,8 @@ namespace obj_slam {
 	object::object(obj_observation* first_ob) :
 		id(_id_seq++), n_points(0), quadric_built(false)
 	{
-		// todo: point_cloud init
 		this->add_observation(first_ob);
+		this->_sampling_point_cloud();
 	}
 
 	object::~object() {
@@ -36,7 +38,8 @@ namespace obj_slam {
 
 	object::object(object&& rhs) noexcept :
 		id(rhs.id), history_centers(std::move(rhs.history_centers)),
-		observations(std::move(rhs.observations)),// todo: point_cloud init
+		point_cloud(std::move(rhs.point_cloud)),
+		observations(std::move(rhs.observations)),
 		n_points(rhs.n_points), quadric_built(false) { }
 
 	object& object::operator=(object&& rhs) noexcept {
@@ -44,18 +47,19 @@ namespace obj_slam {
 
 		id = rhs.id;
 		history_centers = std::move(rhs.history_centers);
+		point_cloud = std::move(rhs.point_cloud);
 		observations = std::move(rhs.observations);
 		n_points = rhs.n_points;
 		param = rhs.param;
 		quadric_built = rhs.quadric_built;
-		// todo: point_cloud copy
+
 		return *this;
 	}
 
 	void object::add_observation(obj_observation* ob) {
 		this->observations.push_back(ob);
 		this->n_points += ob->point_cloud.size();
-		this->_sampling_point_cloud(/* todo size */100);
+		this->_sampling_point_cloud();
 		this->_compute_point_cloud_center();
 	}
 
@@ -63,12 +67,12 @@ namespace obj_slam {
 		std::copy(obj.history_centers.begin(), obj.history_centers.end(), history_centers.end());
 		std::copy(obj.observations.begin(), obj.observations.end(), observations.end());
 		n_points += obj.n_points;
+		point_cloud = _fuse(point_cloud, obj.point_cloud, max_feature_points);
 
 		obj.history_centers.clear();
+		obj.point_cloud.clear();
 		obj.observations.clear();
 		obj.n_points = 0;
-
-		// todo merge point_cloud
 	}
 
 	bool object::build_quadric(const Eigen::Matrix3d& cam_mat) {
@@ -139,7 +143,35 @@ namespace obj_slam {
 	}
 
 	void object::_sampling_point_cloud(int max_pts) {
+		// simply sampling the latest observation point cloud
+		point_cloud = _fuse(point_cloud, observations.back()->point_cloud, max_pts);
+	}
 
+	std::vector<Eigen::Vector3d> object::_fuse(
+		const std::vector<Eigen::Vector3d>& pc0,
+		const std::vector<Eigen::Vector3d>& pc1,
+		int                                 max_pts
+	) {
+		size_t total_sz = pc0.size() + pc1.size();
+		std::cout << "total_sz: " << total_sz << std::endl;
+		std::vector<int> indices(total_sz);
+		for (size_t i = 0; i < total_sz; ++i) {
+			indices[i] = i;
+		}
+
+		std::vector<Eigen::Vector3d> tmp;
+		tmp.reserve(max_pts);
+		std::shuffle(indices.begin(), indices.end(), std::default_random_engine());
+		for (auto i = 0; i < max_pts; ++i) {
+			int idx = indices[i];
+			if (pc0.size() <= idx) {
+				idx -= pc0.size();
+				tmp.push_back(pc1[idx]);
+			}
+			else { tmp.push_back(pc0[idx]); }
+		}
+
+		return tmp;
 	}
 
 	object_manager::~object_manager() {
@@ -159,16 +191,21 @@ namespace obj_slam {
 			this->_create_new_obj(ob);
 		}
 		else {
+			std::cout << "Association found: " << associated_idx << std::endl;
 			this->_merge_ob(associated_idx, ob);
 		}
 	}
 
 	void object_manager::optimize() {
-
+		// todo
 	}
 
 	int object_manager::_find_association(const obj_observation* ob) {
+		for (auto& obj : objects) {
 
+		}
+
+		return 0;
 	}
 
 	void object_manager::_merge_ob(int obj_idx, obj_observation* ob) {
@@ -177,5 +214,32 @@ namespace obj_slam {
 
 	void object_manager::_create_new_obj(obj_observation* ob) {
 		objects.push_back(new object(ob));
+	}
+
+	double object_manager::_match(
+		const std::vector<Eigen::Vector3d>& cloud0,
+		const std::vector<Eigen::Vector3d>& cloud1
+	) {
+		alglib::real_1d_array arr0, arr1;
+		double score = 1.;
+		double p, p0, p1;
+
+		for (int dim = 0; dim < 3; ++dim) {
+
+			arr0.setlength(cloud0.size());
+			for (auto i = 0; i < cloud0.size(); ++i) {
+				arr0[i] = cloud0[i][dim];
+			}
+			arr1.setlength(cloud1.size());
+			for (auto i = 0; i < cloud1.size(); ++i) {
+				arr1[i] = cloud1[i][dim];
+			}
+
+			alglib::mannwhitneyutest(arr0, arr0.length(), arr1, arr1.length(), p, p0, p1);
+			if (p < 0.05) { return 0.; }
+			score *= p;
+		}
+
+		return score;
 	}
 }

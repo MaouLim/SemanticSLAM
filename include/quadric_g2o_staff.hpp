@@ -1,7 +1,6 @@
 #ifndef _QUADRIC_G2O_STAFF_HPP_
 #define _QUADRIC_G2O_STAFF_HPP_
 
-
 #include "common.hpp"
 #include "ellipsoid.hpp"
 

@@ -21,18 +21,18 @@
 #ifndef KEYFRAME_H
 #define KEYFRAME_H
 
+#include <mutex>
+#include <memory>
+
+#include <Eigen/Core>
+#include <DBoW2/BowVector.h>
+#include <DBoW2/FeatureVector.h>
+
 #include "MapPoint.h"
-#include "Thirdparty/DBoW2/DBoW2/BowVector.h"
-#include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 #include "ORBVocabulary.h"
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
-
-#include <Eigen/Core>
-
-#include <mutex>
-#include <memory>
 
 namespace obj_slam { struct obj_observation; }
 namespace vso { struct semantic_lab; }
