@@ -8,10 +8,10 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
- set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -39,9 +39,11 @@ if(NOT OpenCV_FOUND)
    endif()
 endif()
 
+
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(SophusTempl REQUIRED)
+find_package(PCL REQUIRED)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -52,7 +54,10 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/alglib/include/
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${SophusTempl_INCLUDE_DIRS}
+${PCL_INCLUDE_DIRS}
 )
+
+add_definitions(${PCL_DEFINITIONS})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 add_definitions(-D_DISABLE_LOOP_CLOSURE_)
@@ -147,6 +152,7 @@ target_link_libraries(mono_kitti
    ${OpenCV_LIBS}
    ${EIGEN3_LIBS}
    ${Pangolin_LIBRARIES}
+   ${PCL_LIBRARIES}
    ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
    ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
    ${PROJECT_SOURCE_DIR}/Thirdparty/alglib/lib/libALGLIB.so
@@ -181,4 +187,6 @@ src/quadric_g2o_staff.cpp)
 add_executable(ObjectDATest
         test/test_object.cpp)
 target_link_libraries(ObjectDATest
-        ${PROJECT_SOURCE_DIR}/Thirdparty/alglib/lib/libALGLIB.so)
+        ${PROJECT_SOURCE_DIR}/Thirdparty/alglib/lib/libALGLIB.so
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES})

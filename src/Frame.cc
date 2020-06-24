@@ -422,11 +422,12 @@ bool Frame::_compute_obj_pts3d(const Frame& prev) {
 bool Frame::create_obj_observations(const Frame& prev) {
 	if (!this->_compute_obj_pts3d(prev)) { return false; }
 
-	const std::string prefix("point_cloud");
-	std::ofstream fout(prefix + std::to_string(mnId) + std::string(".txt"));
+	const std::string prefix("data/pc/point_cloud");
+	std::ofstream fout(prefix + std::to_string(mnId) + std::string(".csv"));
 
 	observations.reserve(obj_pts3d_seq.size());
 	for (auto i = 0; i < obj_pts3d_seq.size(); ++i) {
+		tools::filter_point_cloud(this->obj_pts3d_seq[i]);
 		if (this->obj_pts3d_seq[i].size() < 20) { continue; }
 
 		auto ob = new obj_slam::obj_observation();
@@ -437,7 +438,7 @@ bool Frame::create_obj_observations(const Frame& prev) {
 		observations.push_back(ob);
 
 		for (auto& each : ob->point_cloud) {
-			fout << i << " " << each[0] << " " << each[1] << " " << each[2] << std::endl;
+			fout << i << ", " << each[0] << ", " << each[1] << ", " << each[2] << std::endl;
 		}
 	}
 

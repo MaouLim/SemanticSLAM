@@ -5,6 +5,9 @@
 #include <Eigen/Core>
 #include <sophus_templ/se3.hpp>
 #include <g2o/types/types_six_dof_expmap.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 
 namespace tools {
 
@@ -70,6 +73,41 @@ namespace tools {
 		double i = box_intersection(box0, box1);
 		double u = box_area(box0) + box_area(box1) - i;
 		return i / u;
+	}
+}
+
+namespace tools {
+
+	inline pcl::PointXYZ to_pcl(const Eigen::Vector3d& p) {
+		return pcl::PointXYZ(p[0], p[1], p[2]);
+	}
+
+	inline Eigen::Vector3d to_eigen(const pcl::PointXYZ& p) {
+		return Eigen::Vector3d(p.x, p.y, p.z);
+	}
+
+	inline void filter_point_cloud(std::vector<Eigen::Vector3d>& cloud) {
+		if (cloud.empty()) { return; }
+
+		pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+		for (auto& each : cloud) {
+			pcl_cloud->push_back(to_pcl(each));
+		}
+
+		int k = pcl_cloud->size() / 3;
+		if (k < 20) { k = 20; }
+
+		std::vector<int> indices;
+		pcl::StatisticalOutlierRemoval<pcl::PointXYZ> filter;
+		filter.setInputCloud(pcl_cloud);
+		filter.setMeanK(k);
+		filter.setStddevMulThresh(0.8);
+		filter.filter(indices);
+
+		cloud.clear();
+		for (auto idx : indices) {
+			cloud.push_back(to_eigen(pcl_cloud->points[idx]));
+		}
 	}
 }
 
