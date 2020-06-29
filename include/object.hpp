@@ -74,7 +74,7 @@ namespace obj_slam {
 
     struct object_manager {
 
-    	std::mutex           obj_mtx;
+	    mutable std::mutex   obj_mtx;
 	    std::vector<object*> objects;
 
 	    object_manager() = default;
@@ -82,6 +82,8 @@ namespace obj_slam {
 
 		void handle_observation(obj_observation* ob);
 		void optimize();
+		std::vector<object*> all_objects() const;
+		void clear();
 
     private:
 	    int _find_association(const obj_observation* ob);

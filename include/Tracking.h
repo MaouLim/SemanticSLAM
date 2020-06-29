@@ -23,6 +23,7 @@
 #define TRACKING_H
 
 #include <mutex>
+#include <condition_variable>
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
@@ -38,6 +39,7 @@
 #include "Initializer.h"
 #include "MapDrawer.h"
 #include "System.h"
+#include "object.hpp"
 
 namespace obj_slam { struct obj_detector; }
 namespace vso { struct semantic_classifier; }
@@ -223,6 +225,20 @@ protected:
 	bool                      use_semantic;
     vso::semantic_classifier* classifier;
     obj_slam::obj_detector*   detector;
+
+
+    std::thread               obj_mgr_thd;
+    bool                      obj_mgr_running;
+
+    std::list<obj_slam::obj_observation*> observations;
+    std::mutex                            obs_mtx;
+    std::condition_variable               not_empty;
+
+    void commit_obj_observations(Frame* frame);
+    void commit_obj_observation(obj_slam::obj_observation* ob);
+    void obj_looping();
+    void start_obj_looping();
+    void stop_obj_looping();
 };
 
 } //namespace ORB_SLAM

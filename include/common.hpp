@@ -87,7 +87,7 @@ namespace tools {
 	}
 
 	inline void filter_point_cloud(std::vector<Eigen::Vector3d>& cloud) {
-		if (cloud.empty()) { return; }
+		if (cloud.size() < 20) { return; }
 
 		pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 		for (auto& each : cloud) {

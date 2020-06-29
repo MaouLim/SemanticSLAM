@@ -174,15 +174,7 @@ namespace obj_slam {
 		return tmp;
 	}
 
-	object_manager::~object_manager() {
-		for (auto& ptr : objects) {
-			if (ptr) {
-				delete ptr;
-				ptr = nullptr;
-			}
-		}
-		objects.clear();
-	}
+	object_manager::~object_manager() { this->clear(); }
 
 	void object_manager::handle_observation(obj_observation* ob) {
 		std::lock_guard<std::mutex> lock(obj_mtx);
@@ -198,14 +190,45 @@ namespace obj_slam {
 
 	void object_manager::optimize() {
 		// todo
+		std::lock_guard<std::mutex> lock(obj_mtx);
+
+	}
+
+	std::vector<object*> object_manager::all_objects() const {
+		std::lock_guard<std::mutex> lock(obj_mtx);
+		return std::vector<object*>(objects.begin(), objects.end());
+	}
+
+	void object_manager::clear() {
+		std::lock_guard<std::mutex> lock(obj_mtx);
+		for (auto& ptr : objects) {
+			if (ptr) {
+				delete ptr;
+				ptr = nullptr;
+			}
+		}
+		objects.clear();
 	}
 
 	int object_manager::_find_association(const obj_observation* ob) {
-		for (auto& obj : objects) {
+		if (this->objects.empty()) { return -1; }
 
+		std::vector<double> scores(objects.size(), 0.);
+		auto match_op = [ob, &scores, this](const cv::Range& range) {
+			for (int i = range.start; i < range.end; ++i) {
+				scores[i] = _match(this->objects[i]->point_cloud, ob->point_cloud);
+			}
+		};
+		cv::parallel_for_(cv::Range(0, objects.size()), match_op);
+
+		double sum = 0.;
+		int max_idx = 0;
+		for (auto i = 0; i < scores.size(); ++i) {
+			sum += scores[i];
+			if (scores[max_idx] < scores[i]) { max_idx = i; }
 		}
-
-		return 0;
+		if (sum < 1e-8) { return -1; }
+		return max_idx;
 	}
 
 	void object_manager::_merge_ob(int obj_idx, obj_observation* ob) {
@@ -235,7 +258,7 @@ namespace obj_slam {
 				arr1[i] = cloud1[i][dim];
 			}
 
-			alglib::mannwhitneyutest(arr0, arr0.length(), arr1, arr1.length(), p, p0, p1);
+			alglib::studentttest2(arr0, arr0.length(), arr1, arr1.length(), p, p0, p1);
 			if (p < 0.05) { return 0.; }
 			score *= p;
 		}

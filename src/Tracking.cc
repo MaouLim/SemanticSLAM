@@ -44,6 +44,49 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
+void Tracking::commit_obj_observations(Frame* frame) {
+	std::lock_guard<std::mutex> locker(obs_mtx);
+	for (auto ob : frame->observations) {
+		observations.push_back(ob);
+	}
+}
+
+void Tracking::commit_obj_observation(obj_slam::obj_observation* ob) {
+	std::lock_guard<std::mutex> locker(obs_mtx);
+	observations.push_back(ob);
+}
+
+void Tracking::obj_looping() {
+
+	obj_slam::obj_observation* ob = nullptr;
+
+	while (obj_mgr_running) {
+		{
+			std::unique_lock<std::mutex> lock(obs_mtx);
+			bool ret = not_empty.wait_for(
+				lock, std::chrono::milliseconds(500), [this]() { return !this->observations.empty(); }
+			);
+			if (!ret) { ob = nullptr; continue; }
+			ob = observations.front();
+			observations.pop_front();
+		}
+
+		mpMap->obj_mgr->handle_observation(ob);
+	}
+
+	std::cout << "object looping thread quit." << std::endl;
+}
+
+void Tracking::start_obj_looping() {
+	if (obj_mgr_running) { return; }
+	obj_mgr_running = true;
+	obj_mgr_thd = std::thread(&Tracking::obj_looping, this);
+}
+
+void Tracking::stop_obj_looping() {
+	obj_mgr_running = false;
+}
+
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool _use_semantic):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
@@ -53,10 +96,14 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     if (use_semantic) {
 	    classifier = new vso::fake_classifier("data/");
 	    detector = new obj_slam::fake_detector("data/");
+	    obj_mgr_running = false;
+
+	    this->start_obj_looping();
     } 
     else {
     	classifier = nullptr;
     	detector = nullptr;
+	    obj_mgr_running = false;
     }
 
     // Load camera parameters from settings file
@@ -159,7 +206,15 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 
 }
 
-Tracking::~Tracking() { delete classifier; }
+Tracking::~Tracking() {
+	delete classifier;
+	delete detector;
+
+	this->stop_obj_looping();
+	if (obj_mgr_thd.joinable()) {
+		obj_mgr_thd.join();
+	}
+}
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -856,6 +911,7 @@ bool Tracking::TrackReferenceKeyFrame()
 	if (mLastFrame.mTcw.empty()) { std::cerr << "mLastFrame.mTcw.empty" << std::endl; }
 	bool ret = mCurrentFrame.create_obj_observations(mLastFrame);
 	if (!ret) { std::cerr << "create_obj_observations() failed." << std::endl; }
+	else { this->commit_obj_observations(&mCurrentFrame); }
 
     return nmatchesMap>=10;
 }
@@ -993,6 +1049,7 @@ bool Tracking::TrackWithMotionModel()
 	if (mLastFrame.mTcw.empty()) { std::cerr << "mLastFrame.mTcw.empty" << std::endl; }
 	bool ret = mCurrentFrame.create_obj_observations(mLastFrame);
 	if (!ret) { std::cerr << "create_obj_observations() failed." << std::endl; }
+	else { this->commit_obj_observations(&mCurrentFrame); }
 
     if(mbOnlyTracking)
     {

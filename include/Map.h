@@ -27,6 +27,10 @@
 #include "MapPoint.h"
 #include "KeyFrame.h"
 
+namespace obj_slam {
+	struct object_manager;
+}
+
 namespace ORB_SLAM2
 {
 
@@ -76,6 +80,13 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
+
+	/**
+	 *
+	 */
+public:
+	obj_slam::object_manager* obj_mgr;
+	~Map();
 };
 
 } //namespace ORB_SLAM

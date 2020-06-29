@@ -191,6 +191,19 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
 
         glEnd();
     }
+
+	std::vector<obj_slam::object*> objs = mpMap->obj_mgr->all_objects();
+
+	glPointSize(mPointSize);
+	glBegin(GL_POINTS);
+	glColor3f(1.0, 1.0, 0.0);
+
+	for (auto obj : objs) {
+		Eigen::Vector3d last_center = obj->history_centers.back();
+		glVertex3d(last_center[0], last_center[1], last_center[2]);
+	}
+	
+	glEnd();
 }
 
 void MapDrawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)

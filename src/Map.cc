@@ -21,11 +21,14 @@
 
 #include "Map.h"
 
+#include "object.hpp"
+
 namespace ORB_SLAM2
 {
 
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {
+	obj_mgr = new obj_slam::object_manager();
 }
 
 void Map::AddKeyFrame(KeyFrame *pKF)
@@ -127,6 +130,15 @@ void Map::clear()
     mnMaxKFid = 0;
     mvpReferenceMapPoints.clear();
     mvpKeyFrameOrigins.clear();
+
+	obj_mgr->clear();
+}
+
+Map::~Map() {
+	if (obj_mgr) {
+		delete obj_mgr;
+		obj_mgr = nullptr;
+	}
 }
 
 } //namespace ORB_SLAM
